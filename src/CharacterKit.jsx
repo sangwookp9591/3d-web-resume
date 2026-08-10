@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 function Live3D({ src }) {
   const host = useRef(null);
   const [state, setState] = useState('idle');
+  const [api, setApi] = useState('');
 
   useEffect(() => {
     const el = host.current;
@@ -22,12 +23,29 @@ function Live3D({ src }) {
       io.disconnect();
       setState('loading');
       try {
-        const THREE = await import('three');
+        // Exactly ONE three build is fetched. `three/webgpu` already re-exports the core
+        // classes, so importing it *and* `three` would ship two copies of the same
+        // library (~190kB gzip wasted) — pick the entry point first, then import.
+        const useGPU = !!navigator.gpu;
+        const THREE = useGPU ? await import('three/webgpu') : await import('three');
         const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
         if (stop) return;
 
         const w = el.clientWidth, h = el.clientHeight;
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+
+        let renderer, apiName = 'WebGL';
+        if (useGPU) {
+          try {
+            const r = new THREE.WebGPURenderer({ antialias: true, alpha: true });
+            await r.init();
+            renderer = r;
+            apiName = 'WebGPU';
+          } catch (e) {
+            console.warn('[aing-3d] WebGPU init failed, falling back to WebGL', e);
+          }
+        }
+        renderer = renderer || new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        setApi(apiName);
         renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
         renderer.setSize(w, h);
         el.appendChild(renderer.domElement);
@@ -41,18 +59,34 @@ function Live3D({ src }) {
         key.position.set(2, 3, 2);
         scene.add(key);
 
-        const gltf = await new GLTFLoader().loadAsync(src);
+        // The GLB ships meshopt-compressed (54 MB raw → 200 kB), so the decoder has to
+        // be registered or the loader throws on the EXT_meshopt_compression extension.
+        const { MeshoptDecoder } = await import('three/examples/jsm/libs/meshopt_decoder.module.js');
+        const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+        const gltf = await loader.loadAsync(src);
         if (stop) return;
         const model = gltf.scene;
 
-        // normalise: the exporter's scale and origin vary per generation
+        // The exporter's scale, origin and facing all vary per generation, so frame the
+        // model from its own bounds rather than guessing constants: centre it on the
+        // origin, then pull the camera back to the distance that fits its bounding
+        // sphere in the current field of view.
         const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3());
         const centre = box.getCenter(new THREE.Vector3());
-        const k = 1.8 / Math.max(size.x, size.y, size.z);
-        model.scale.setScalar(k);
-        model.position.sub(centre.multiplyScalar(k));
-        scene.add(model);
+        model.position.sub(centre);
+
+        const pivot = new THREE.Group();
+        pivot.add(model);
+        pivot.rotation.y = Math.PI;      // tripo exports facing away from the camera
+        scene.add(pivot);
+
+        const sphere = box.getBoundingSphere(new THREE.Sphere());
+        const fit = sphere.radius / Math.sin((camera.fov * Math.PI) / 360);
+        camera.position.set(0, sphere.radius * 0.05, fit * 0.95);
+        camera.lookAt(0, 0, 0);
+        camera.near = fit * 0.02;
+        camera.far = fit * 6;
+        camera.updateProjectionMatrix();
 
         const mixer = gltf.animations?.length ? new THREE.AnimationMixer(model) : null;
         gltf.animations?.forEach((c) => mixer.clipAction(c).play());
@@ -68,7 +102,7 @@ function Live3D({ src }) {
         const clock = new THREE.Clock();
         renderer.setAnimationLoop(() => {
           spin += vel;
-          model.rotation.y = spin;
+          pivot.rotation.y = Math.PI + spin;
           mixer?.update(clock.getDelta());
           renderer.render(scene, camera);
         });
@@ -106,7 +140,7 @@ function Live3D({ src }) {
         {state === 'error'
           ? '3D 모델을 불러오지 못했습니다.'
           : state === 'ready'
-            ? '드래그해서 돌려보세요 · GLB'
+            ? `드래그해서 돌려보세요 · GLB · ${api}`
             : 'GLB 불러오는 중…'}
       </p>
     </div>
@@ -149,7 +183,7 @@ export default function CharacterKit() {
   const toItems = (setname) =>
     (kit.sets?.[setname]?.frames || []).map((n) => ({ name: n, file: `${setname}/${n}.webp` }));
   const motions = (kit.motion || []).map((m) => ({ name: m.name, file: m.webp }));
-  const glb = kit.model3d ? Object.values(kit.model3d)[0] : null;
+  const glb = kit.model3d?.aing ?? (kit.model3d ? Object.values(kit.model3d)[0] : null);
 
   return (
     <section className="kit" id="aing" data-stage="kit">
@@ -167,6 +201,12 @@ export default function CharacterKit() {
       <Row title="모션" note="알파 애니메이션 WebP · PNG 시퀀스 동봉" items={motions} base={base} big />
       <Row title="표정" note={`${toItems('expr').length}종 · 알파 컷아웃`} items={toItems('expr')} base={base} />
       <Row title="액션" note={`${toItems('pose').length}종 · 알파 컷아웃`} items={toItems('pose')} base={base} />
+
+      {kit.download && (
+        <a className="kit__dl" href={`${base}${kit.download}`} download>
+          킷 내려받기 · 표정·액션·모션·아틀라스·GLB
+        </a>
+      )}
 
       <ul className="kit__use">
         {Object.entries(kit.usage || {}).map(([k, v]) => (

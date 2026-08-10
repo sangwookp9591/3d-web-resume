@@ -387,7 +387,7 @@
   },
   "meta": {
     "app": "aing-kit",
-    "image": "aing-pose.png",
+    "image": "aing-pose.webp",
     "format": "RGBA8888",
     "size": {
       "w": 1024,

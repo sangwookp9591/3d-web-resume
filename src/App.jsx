@@ -113,6 +113,24 @@ function Guide() {
   const stage = useStage();
   const line = SCRIPT[stage] ?? SCRIPT.cover;
   const [open, setOpen] = useState(true);
+  const base = `${import.meta.env.BASE_URL}mascot/`;
+
+  // Animated WebP can't be paused, so reduced-motion gets the still pose instead of
+  // a loop it never asked for.
+  const [still, setStill] = useState(
+    () => typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const on = () => setStill(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+
+  const src = still || !line.motion
+    ? `${base}pose/${line.pose}.webp`
+    : `${base}motion/${line.motion}.webp`;
 
   return (
     <aside className={`aing${open ? '' : ' aing--tucked'}`} data-stage-of={stage}>
@@ -123,8 +141,9 @@ function Guide() {
         aria-expanded={open}
         aria-label={open ? '아잉 설명 접기' : '아잉 설명 펼치기'}
       >
-        {/* the pose swap is the animation — no crossfade needed, she just reacts */}
-        <img src={`./mascot-${line.pose}.webp`} alt="" width="120" height="120" key={line.pose} />
+        {/* keyed on src so a stage change remounts the loop — it restarts from frame 0
+            and the pop-in animation reads as her reacting */}
+        <img src={src} alt="" width="120" height="120" key={src} />
       </button>
       <p className="aing__say" role="status" aria-live="polite">
         <span key={stage}>{line.text}</span>

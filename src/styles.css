@@ -625,3 +625,18 @@ a { color: inherit; }
   padding: 3px 9px;
   border-radius: 999px;
 }
+
+.kit__dl {
+  display: inline-block;
+  margin-top: clamp(18px, 3vw, 28px);
+  padding: 14px 26px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 620;
+  font-size: 0.92rem;
+  color: var(--cloud);
+  background: var(--ink);
+  transition: transform 200ms cubic-bezier(.22,.61,.36,1);
+}
+.kit__dl:hover { transform: translateY(-2px); }
+.kit__dl:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }

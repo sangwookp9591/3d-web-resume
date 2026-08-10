@@ -11,7 +11,7 @@
   },
   "sets": {
     "expr": {
-      "image": "sheets/aing-expr.png",
+      "image": "sheets/aing-expr.webp",
       "atlas": "sheets/aing-expr.json",
       "cell": 256,
       "cols": 4,
@@ -54,7 +54,7 @@
       ]
     },
     "pose": {
-      "image": "sheets/aing-pose.png",
+      "image": "sheets/aing-pose.webp",
       "atlas": "sheets/aing-pose.json",
       "cell": 256,
       "cols": 4,
@@ -97,12 +97,47 @@
       ]
     }
   },
-  "motion": [],
-  "model3d": {},
+  "motion": [
+    {
+      "name": "celebrate",
+      "webp": "motion/celebrate.webp",
+      "frames": "motion/frames/celebrate/  (aing-kit.zip)"
+    },
+    {
+      "name": "idle",
+      "webp": "motion/idle.webp",
+      "frames": "motion/frames/idle/  (aing-kit.zip)"
+    },
+    {
+      "name": "jump",
+      "webp": "motion/jump.webp",
+      "frames": "motion/frames/jump/  (aing-kit.zip)"
+    },
+    {
+      "name": "think",
+      "webp": "motion/think.webp",
+      "frames": "motion/frames/think/  (aing-kit.zip)"
+    },
+    {
+      "name": "type",
+      "webp": "motion/type.webp",
+      "frames": "motion/frames/type/  (aing-kit.zip)"
+    },
+    {
+      "name": "wave",
+      "webp": "motion/wave.webp",
+      "frames": "motion/frames/wave/  (aing-kit.zip)"
+    }
+  ],
+  "model3d": {
+    "aing-lite": "3d/aing-lite.glb",
+    "aing": "3d/aing.glb"
+  },
   "usage": {
     "web": "expr/ and pose/ are alpha WebP; motion/ are animated WebP (alpha).",
     "phaser_pixi": "Load sheets/aing-<set>.json as a TextureAtlas (hash format).",
     "unity": "Import sheets/aing-<set>.png, Sprite Mode = Multiple, Slice = Grid By Cell Size 256x256, pivot Center.",
-    "threejs_webgpu": "sheets/*.png tile on a uniform grid — index a frame as (i % cols, floor(i / cols)); 3d/*.glb loads via GLTFLoader."
-  }
+    "threejs_webgpu": "sheets/*.webp tile on a uniform grid — index a frame as (i % cols, floor(i / cols)). 3d/aing.glb is meshopt-compressed: register MeshoptDecoder on GLTFLoader. aing-lite.glb is the 200kB build."
+  },
+  "download": "aing-kit.zip"
 }
