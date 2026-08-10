@@ -5,6 +5,7 @@ import { sections, connectors } from './worldConfig.js';
 import { SCRIPT } from './guideScript.js';
 import useStage from './useStage.js';
 import CharacterKit from './CharacterKit.jsx';
+import Oracle from './oracle/Oracle.jsx';
 
 /* ── Cover ────────────────────────────────────────────────────────────────
    Spatial UI: planes at different depths. The pointer moves the camera, not
@@ -42,11 +43,13 @@ function Cover() {
             설계하는 개발자.
           </h1>
           <p className="plate__body">
-            9개월간 의료관광 플랫폼의 웹 프론트엔드(단독) · 어드민(리드) · 백엔드(최다 기여)
-            3개 저장소를 관통했습니다. 기능을 구현하는 데서 멈추지 않고 — 아키텍처 규율을 도구로
-            자동 집행하고, 실패 경로를 먼저 설계하고, 반복되는 버그를 규약으로 차단했습니다.
+            의료관광 플랫폼의 웹(단독) · 어드민(리드) · 백엔드(최다 기여) 3개 저장소를
+            9개월간 관통했습니다. 나머지는 아래 창에 물어보세요.
           </p>
         </div>
+
+        {/* 두 판 사이, 화면 한복판. 내 문장 다음에 오는 것은 방문자의 질문입니다. */}
+        <Oracle />
 
         <dl className="plate plate--stats">
           {[

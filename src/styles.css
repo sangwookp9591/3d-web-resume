@@ -155,19 +155,28 @@ a { color: inherit; }
   --px: 0; --py: 0;
   min-height: 100svh;
   /* the bottom pad is Ai-ng's seat — the scroll cue must never sit under her */
-  padding: clamp(64px, 12vh, 132px) var(--gutter) clamp(150px, 20vh, 210px);
+  padding: clamp(48px, 7vh, 84px) var(--gutter) clamp(112px, 15vh, 156px);
   display: grid;
-  align-content: center;
+  grid-template-rows: 1fr;      /* 판이 뷰포트 높이를 확정적으로 물려받게 */
   isolation: isolate;
   overflow: clip;
 }
 
+/* 검색창이 화면 한복판에 앉도록 판을 위·아래로 갈라놓습니다. 두 개의 1fr이
+   같은 높이를 먹으므로, 이름 판이 아무리 길어져도 검색창의 중심은 안 움직입니다. */
 .cover__stage {
   position: relative;
   width: min(1080px, 100%);
   margin-inline: auto;
   perspective: 1400px;
+  display: grid;
+  /* minmax(0,·) 없이 두면 fr끼리 서로 크기를 맞추려다 이름 판 높이가 아래 행에도
+     복사되어 커버가 뷰포트의 1.5배로 늘어납니다. */
+  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: start;
 }
+.plate--name { align-self: end; }
+.plate--stats { align-self: start; }
 
 /* A seal stamped in the corner of the sky, not a headline. Physical top/right on
    purpose: with writing-mode vertical-rl the logical inset properties remap onto
@@ -640,3 +649,281 @@ a { color: inherit; }
 }
 .kit__dl:hover { transform: translateY(-2px); }
 .kit__dl:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+
+/* ══ Oracle — 검색창이 그대로 자라 채팅창이 되는 판 ═════════════════════
+   판은 화면 중앙에 fixed로 하나뿐입니다. 접힘/펼침은 clip-path만 바뀌고,
+   그 형태는 GPU 파티클이 만드는 막(orc__fx)이 잡습니다. 레이아웃은 안 움직입니다. */
+
+/* 커버 그리드 안에 검색창 높이만큼의 자리만 남깁니다 — 판 자체는 흐름 밖입니다. */
+.oracle-slot { height: 100px; }
+
+.orc__fx {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  z-index: 88;
+}
+
+.orc__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 87;
+  border: 0;
+  padding: 0;
+  background: color-mix(in oklab, var(--ink) 26%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: orc-fade 460ms ease both;
+  cursor: pointer;
+}
+@keyframes orc-fade { from { opacity: 0; } }
+
+.orc__panel {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: var(--panel-w, 824px);
+  height: var(--panel-h, 572px);
+  transform: translate(-50%, -50%);
+  z-index: 89;
+  border-radius: 28px;
+  background:
+    linear-gradient(150deg,
+      color-mix(in oklab, #ffffff 64%, transparent) 0%,
+      color-mix(in oklab, var(--paper) 30%, transparent) 52%,
+      color-mix(in oklab, var(--ice) 24%, transparent) 100%);
+  backdrop-filter: blur(22px) saturate(1.6);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  box-shadow:
+    0 26px 70px -30px var(--cast),
+    0 0 0 1px var(--rim) inset,
+    inset 0 1px 0 color-mix(in oklab, #ffffff 82%, transparent);
+  opacity: var(--panel-a, 0.94);
+  /* clip-path는 hit-test도 자릅니다 — 접혀 있을 때 판 바깥은 클릭을 안 먹습니다. */
+  clip-path: inset(236px 52px round 28px);
+  will-change: clip-path, opacity;
+  contain: layout paint style;
+  overflow: hidden;
+}
+.orc__panel.is-away {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 320ms ease;
+}
+
+/* ── 접힌 모습: 검색창 ─────────────────────────────────────────────── */
+.orc__bar {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--bar-w, 720px);
+  height: var(--bar-h, 100px);
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 2vw, 20px);
+  padding: 0 clamp(20px, 3vw, 30px);
+  margin: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  cursor: text;
+  opacity: var(--rev-bar, 1);
+  pointer-events: var(--bar-pe, auto);
+}
+.orc__panel.is-open .orc__bar { pointer-events: none; }
+.orc__bar:focus-visible { outline: 2px solid var(--accent); outline-offset: -6px; border-radius: 24px; }
+
+.orc__glyph {
+  flex: none;
+  width: 21px; height: 21px;
+  border: 2.2px solid color-mix(in oklab, var(--ink) 62%, transparent);
+  border-radius: 50%;
+  position: relative;
+}
+.orc__glyph::after {
+  content: '';
+  position: absolute;
+  right: -8px; bottom: -6px;
+  width: 11px; height: 2.2px;
+  border-radius: 2px;
+  background: color-mix(in oklab, var(--ink) 62%, transparent);
+  transform: rotate(45deg);
+}
+.orc__slot {
+  flex: 1;
+  min-width: 0;
+  font-size: clamp(0.98rem, 2.1vw, 1.24rem);
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.orc__kbd {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px; height: 26px;
+  border-radius: 8px;
+  border: 1px solid var(--rim-low);
+  background: color-mix(in oklab, #ffffff 46%, transparent);
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+}
+
+/* 신기루: 글자가 하나씩 흐려지며 맺혔다가 다시 하나씩 증발합니다. */
+.mirage { display: inline-block; }
+.mirage__c {
+  display: inline-block;
+  white-space: pre;
+  animation:
+    mirage-in 620ms cubic-bezier(.2,.8,.3,1) calc(var(--i) * 26ms) both,
+    mirage-out 700ms ease-in calc(3100ms + var(--i) * 20ms) both;
+}
+@keyframes mirage-in {
+  from { opacity: 0; filter: blur(9px); transform: translateY(7px) scaleY(1.25); }
+  to   { opacity: 1; filter: blur(0);   transform: none; }
+}
+@keyframes mirage-out {
+  from { opacity: 1; filter: blur(0);   transform: none; }
+  to   { opacity: 0; filter: blur(11px); transform: translateY(-9px) scaleY(0.7); }
+}
+
+/* ── 펼친 모습: 같은 판 안에서 자라난 채팅 ─────────────────────────── */
+.orc__chat {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  pointer-events: none;
+}
+.orc__panel.is-open .orc__chat { pointer-events: auto; }
+
+.orc__head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 16px clamp(16px, 2.6vw, 22px);
+  border-bottom: 1px solid var(--rim-low);
+  opacity: var(--rev-head, 0);
+  transform: translateY(calc((1 - var(--rev-head, 0)) * 10px));
+}
+.orc__orb {
+  width: 26px; height: 26px;
+  flex: none;
+  border-radius: 50%;
+  position: relative;
+  background: conic-gradient(from 210deg, var(--ice), var(--lav), var(--blush), var(--ice));
+  animation: orc-orb 7s linear infinite;
+}
+@keyframes orc-orb { to { transform: rotate(360deg); } }
+.orc__orb::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--paper) 88%, transparent);
+}
+.orc__title {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.04rem;
+  letter-spacing: 0.02em;
+}
+.orc__x {
+  flex: none;
+  border: 0;
+  background: none;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 7px 9px;
+  border-radius: 9px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.orc__x:hover { background: color-mix(in oklab, var(--ink) 8%, transparent); }
+.orc__x:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.orc__log {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(14px, 2.4vw, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  opacity: var(--rev-body, 0);
+}
+.orc__hint { margin: 0; color: var(--ink-faint); font-size: 0.92rem; line-height: 1.8; }
+.orc__turn {
+  margin: 0;
+  max-width: 86%;
+  padding: 11px 15px;
+  border-radius: 16px;
+  font-size: 0.92rem;
+  line-height: 1.76;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  animation: orc-turn 320ms cubic-bezier(.2,.8,.3,1) both;
+}
+@keyframes orc-turn { from { opacity: 0; transform: translateY(8px); } }
+.orc__turn--you {
+  align-self: flex-end;
+  background: color-mix(in oklab, var(--ink) 88%, transparent);
+  color: var(--cloud);
+  border-bottom-right-radius: 5px;
+}
+.orc__turn--aing {
+  align-self: flex-start;
+  background: color-mix(in oklab, #ffffff 62%, transparent);
+  border: 1px solid var(--rim-low);
+  border-bottom-left-radius: 5px;
+}
+
+.orc__form {
+  display: flex;
+  gap: 10px;
+  padding: clamp(12px, 2vw, 16px);
+  border-top: 1px solid var(--rim-low);
+  background: color-mix(in oklab, #ffffff 32%, transparent);
+  opacity: var(--rev-foot, 0);
+  transform: translateY(calc((1 - var(--rev-foot, 0)) * 8px));
+}
+.orc__input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 15px;
+  border-radius: 13px;
+  border: 1px solid var(--rim-low);
+  background: color-mix(in oklab, #ffffff 66%, transparent);
+  font: inherit;
+  font-size: 0.94rem;
+  color: var(--ink);
+}
+.orc__input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.orc__send {
+  flex: none;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 13px;
+  background: var(--ink);
+  color: var(--cloud);
+  font: inherit;
+  font-weight: 620;
+  font-size: 0.89rem;
+  cursor: pointer;
+}
+.orc__send:disabled { opacity: 0.4; cursor: default; }
+.orc__send:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* 전역 규칙이 모든 애니메이션을 0.01ms로 줄이는데, 신기루는 그러면 '증발한' 끝
+     상태로 굳어 글자가 사라집니다. 여기서는 아예 애니메이션을 걷어냅니다. */
+  .mirage__c { animation: none !important; opacity: 1; transform: none; filter: none; }
+  .orc__turn, .orc__scrim { animation: none !important; opacity: 1; transform: none; }
+}
