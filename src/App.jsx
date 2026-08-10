@@ -30,9 +30,9 @@ function Cover() {
 
   return (
     <header className="cover" id="top" data-stage="cover" ref={stage}>
-      <div className="cover__stage">
-        <p className="cover__seal" aria-hidden="true">之印</p>
+      <p className="cover__seal" aria-hidden="true">之印</p>
 
+      <div className="cover__stage">
         <div className="plate plate--name">
           <p className="plate__kicker">박상욱 · iron</p>
           <h1 className="plate__title">
@@ -227,6 +227,7 @@ function Colophon() {
 export default function App() {
   return (
     <>
+      <div className="sky" aria-hidden="true" />
       <Cover />
       <World />
       <Footprint />
