@@ -107,6 +107,17 @@ export default function Oracle() {
   // 막이 다 맺힌 다음에 포커스를 옮깁니다 — 그 전에는 입력칸이 아직 잘려 있습니다.
   useEffect(() => { if (open && ready) inputRef.current?.focus(); }, [open, ready]);
 
+  /* 열려 있는 동안 판 뒤의 페이지는 탭으로도 스크린리더로도 들어갈 수 없어야 하고,
+     스크롤도 멈춰야 합니다. 판은 portal로 body에 있으므로 #root만 재우면 됩니다. */
+  useEffect(() => {
+    if (!open) return;
+    const root = document.getElementById('root');
+    const prev = document.body.style.overflow;
+    root.inert = true;
+    document.body.style.overflow = 'hidden';
+    return () => { root.inert = false; document.body.style.overflow = prev; };
+  }, [open]);
+
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' });
   }, [turns]);

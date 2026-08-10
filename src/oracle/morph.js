@@ -41,7 +41,9 @@ const Shape = {
   resize(w, h) {
     const mg = w < 560 ? 14 : 28;
     const maxHx = (w - mg * 2) / 2;
-    Shape.collapsed.hx = Math.min(CFG.collapsed.hx, maxHx);
+    // 좁은 화면에서 둘 다 화면 폭에 걸리면 폭이 안 변해 "자란다"는 느낌이 사라집니다.
+    // 접힌 쪽에 여유를 남겨 폭도 함께 벌어지게 합니다.
+    Shape.collapsed.hx = Math.min(CFG.collapsed.hx, maxHx * 0.88);
     Shape.collapsed.hy = CFG.collapsed.hy;
     Shape.expanded.hx = Math.min(CFG.expanded.hx, maxHx);
     Shape.expanded.hy = Math.min(CFG.expanded.hy, (h - mg * 2 - 12) / 2);
@@ -381,6 +383,8 @@ class Backend {
     this.ctx = canvas.getContext('webgpu');
     this.format = navigator.gpu.getPreferredCanvasFormat();
     this.ctx.configure({ device, format: this.format, alphaMode: 'premultiplied' });
+    // 검증 오류는 예외로 오지 않고 여기로만 옵니다 — 잡아두지 않으면 화면만 비고 원인을 못 봅니다.
+    device.addEventListener?.('uncapturederror', (e) => console.error('[morph][WebGPU]', e.error?.message || e));
 
     this.count = Sim.reduced ? CFG.count.reduced : CFG.count.webgpu;
     this.uni = new Float32Array(28);
