@@ -16,8 +16,9 @@
   --sky: linear-gradient(180deg,
     var(--sky-high) 0%, var(--sky-mid) 34%, var(--sky-low) 68%, var(--cloud) 100%);
 
-  --ink-soft:   color-mix(in oklab, var(--ink) 62%, var(--paper));
-  --ink-faint:  color-mix(in oklab, var(--ink) 34%, var(--paper));
+  --ink-soft:   color-mix(in oklab, var(--ink) 74%, var(--paper));
+  --ink-faint:  color-mix(in oklab, var(--ink) 52%, var(--paper));  /* over a cloud deck,
+                34% dropped below readable — this is the floor that still reads as secondary */
   --accent:     color-mix(in oklab, var(--ice) 70%, var(--ink));
 
   /* glass surfaces: a tint, a rim, a sheen — never a flat translucent box */
@@ -424,7 +425,7 @@ a { color: inherit; }
   font-family: var(--font-display);
   font-size: clamp(1.5rem, 3.4vw, 2.1rem);
   line-height: 1.1;
-  color: color-mix(in oklab, var(--ink) 28%, var(--paper));
+  color: color-mix(in oklab, var(--ink) 46%, var(--paper));
 }
 .creed__head {
   grid-column: 2;
@@ -472,6 +473,8 @@ a { color: inherit; }
   .cover__seal { font-size: clamp(2.6rem, 15vw, 4.6rem); inset-block-start: -14px; }
 }
 @media (max-width: 620px) {
+  /* Ai-ng stacks (bubble under the cat) so she needs more room under the cover copy */
+  .cover { padding-block-end: 230px; }
   .aing { align-items: flex-end; flex-direction: column; gap: 8px; }
   .aing__say { margin: 0; border-radius: 18px 18px 18px 5px; }
   .aing__cat { align-self: flex-end; }

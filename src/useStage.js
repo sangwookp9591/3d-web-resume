@@ -13,9 +13,15 @@ export default function useStage() {
     const blocks = () => Array.from(document.querySelectorAll('[data-stage]'));
 
     const readPlain = () => {
+      const all = blocks();
+      // At the very bottom the viewport midpoint still sits in the section above,
+      // so the short closing block would never win on its own.
+      const atEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      if (atEnd) return all[all.length - 1]?.dataset.stage ?? null;
+
       const mid = window.innerHeight / 2;
       let best = null;
-      for (const el of blocks()) {
+      for (const el of all) {
         const r = el.getBoundingClientRect();
         if (r.top <= mid && r.bottom >= mid) best = el;
       }

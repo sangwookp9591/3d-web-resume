@@ -36,7 +36,7 @@ export const SCRIPT = {
     text: '저장소 세 곳에서 역할이 다 달랐어. 막대 길이는 내가 늘린 게 아니라 진짜 커밋 점유율이야.',
   },
   principles: {
-    pose: 'glass',
+    pose: 'creed',
     text: 'iron이 일하는 방식 세 가지야. 난 첫 번째가 제일 좋아 — 규칙은 사람 기억이 아니라 도구가 지키는 거래.',
   },
   colophon: {
