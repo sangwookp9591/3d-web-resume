@@ -70,11 +70,32 @@
 | 2 | **Gemma 4** | `onnx-community/gemma-4-E2B-it-ONNX` q4f16을 WebGPU로. 최초 1회 3.4GB, **버튼을 눌러야만** 받습니다 |
 | 3 | **위키** | 모델이 없어도 조각을 그대로 인용해 답합니다 |
 
-근거는 셋 다 같은 위키(`src/oracle/wiki.js`)입니다. 형태소 분석기 없이 2-gram으로 조사를 뚫고,
-문서 빈도로 흔한 말을 눌러 "iron"이 붙었다고 소개 조각이 1등 하는 일을 막습니다.
+### 무엇을 근거로 답하나
+
+근거는 셋 다 같은 위키(`src/oracle/wiki.js`) **16개 조각**입니다. PAR 이력서의
+Problem·Analyze·Action·Result를 옮겨서, 무엇을 했는지뿐 아니라 **어떤 선택지를 왜 골랐는지**까지 답합니다.
+
+| 갈래 | 조각 |
+|---|---|
+| 개요 | 종합 프로필 · 세 저장소 포지션 |
+| FRONT | 웹 0→1(14개 언어) · 결제 실패 경로 · E2E 하네스 |
+| ADMIN | RBAC 하이브리드 권한 · 공통 인프라와 팀 규약 |
+| BACK | 도메인 개요 · OpenSearch 재색인 · 멀티 LLM 회복탄력 · 쿠폰 DDD/Outbox |
+| 그 외 | 일하는 방식 · 스택 · 이 사이트 · 연락 · **하지 않은 일** |
+
+마지막 조각이 중요합니다. RAG/pgvector는 계획 흔적만 있고 구현이 없으며, 백엔드 결제 코어는
+다른 기여자 소유입니다. **모델이 넘지 말아야 할 선을 근거 안에 적어 둡니다.**
+
+검색은 형태소 분석기 없이 돌아갑니다:
+
+- **2-gram으로 조사를 뚫되 한글에만.** 영문 두 글자는 뜻이 없어서 `archunit`의 `ch`가
+  `opensearch`에 걸리는 식으로 노이즈만 만듭니다
+- **문서 빈도로 흔한 말을 누릅니다.** 없으면 "iron"이 붙었다는 이유로 소개 조각이 1등을 합니다
+- **길이 정규화는 완만하게**(BM25의 `b`항). 안 하면 개요 조각이 다 먹고, 제곱근으로 나누면
+  반대로 가장 짧은 조각이 아무 질문에나 튀어나옵니다
 
 ```bash
-node src/oracle/wiki.check.mjs   # 검색이 엉뚱한 조각을 1등에 올리면 실패
+node src/oracle/wiki.check.mjs   # 37개 체크. 엉뚱한 조각이 1등이면 실패
 ```
 
 ---
@@ -184,7 +205,11 @@ npm install
 npm run dev      # http://localhost:5173
 npm run build    # dist/
 npm run preview
+
+node src/oracle/wiki.check.mjs   # 위키 검색 회귀 체크 (프레임워크 없음)
 ```
+
+변경 이력과 결정 근거는 [CHANGELOG.md](CHANGELOG.md)에 있습니다.
 
 ---
 
