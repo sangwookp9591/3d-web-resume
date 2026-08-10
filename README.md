@@ -16,6 +16,31 @@
 | 지능 | 등불 셋 중 하나가 꺼진 천문대 | OpenSearch 재색인 · 멀티 LLM fallback |
 | 정합성 | 일방향 문을 지나는 동전 수로 | 쿠폰 DDD/Hexagonal · Outbox |
 
+## Ai-ng 캐릭터 킷
+
+마스코트를 페이지 장식이 아니라 **재사용 가능한 에셋**으로 만들었습니다.
+`public/mascot/` 아래에 있고, `aing-kit.json` 매니페스트 하나로 전부 기술됩니다.
+
+| 항목 | 내용 |
+|---|---|
+| 표정 | 16종 · 알파 컷아웃 WebP |
+| 액션 | 16종 · 알파 컷아웃 WebP |
+| 모션 | 6종 · 알파 애니메이션 WebP (+ PNG 시퀀스, zip 동봉) |
+| 아틀라스 | 256px 균일 그리드 · WebP(웹) + PNG(엔진) + TextureAtlas JSON |
+| 3D | `aing.glb` 1.19MB · `aing-lite.glb` 200KB (meshopt) |
+
+- **Phaser / PixiJS** — `sheets/aing-<set>.json`을 TextureAtlas(hash)로 로드
+- **Unity** — `sheets/aing-<set>.png`, Sprite Mode = Multiple, Grid By Cell Size 256×256
+- **three.js / WebGPU** — 아틀라스는 `(i % cols, floor(i / cols))`로 인덱싱, GLB는 `MeshoptDecoder` 등록 후 `GLTFLoader`
+
+## 성능
+
+- 초기 번들 **74KB gzip**. three.js는 캐릭터 킷 섹션이 뷰포트에 들어온 뒤에만 로드
+- WebGPU 지원 시 `three/webgpu`, 아니면 `three` — **한쪽만** 받음 (둘 다 받으면 190KB gzip 중복)
+- 3D 원본 54.44MB → **1.19MB** (gltf-transform: simplify + meshopt + 텍스처 WebP)
+- 클립은 crf26/GOP10 720p (3MB/개), 스크럽은 Blob 로드로 byte-range 의존 제거
+- Lighthouse(mobile) 접근성·베스트프랙티스·SEO·에이전틱 **모두 100**, LCP 342ms, CLS 0.00
+
 ## 스택
 
 - Vite 7 + React 19 (SSR이 필요 없는 단일 페이지라 정적 빌드)
@@ -36,9 +61,17 @@ npm run build    # dist/
 `.world/`(git 제외)에 원본이 있고, 아래 스크립트가 `public/`으로 굽습니다.
 
 ```bash
-python3 .world/prep_assets.py                  # 씬 -> webp 포스터, 마스코트 -> 알파 트림 webp
-python3 .world/build_sky.py s4.png 0.80 1.0    # 씬의 하늘 열을 거울 타일링해 배경 파노라마
-bash .world/encode.sh                          # 클립 -> crf26/GOP10, faststart, 무음
+python3 .world/prep_assets.py                          # 씬 -> webp 포스터
+python3 .world/build_sky.py s4.png 0.80 1.0            # 씬의 하늘 열을 거울 타일링해 배경 파노라마
+bash .world/encode.sh                                  # 클립 -> crf26/GOP10, faststart, 무음
+
+bash .world/kit.sh                                     # 표정 16 + 액션 16 (nano_banana_2_lite)
+python3 .world/knockout.py IN.png OUT.webp --white     # 흰 배경 녹아웃 (--checker 모드도 있음)
+bash .world/motion.sh                                  # 모션 6종 (seedance, 흰 배경 고정 카메라)
+python3 .world/build_motion.py kit/motion/idle.mp4 --pingpong --fps 10 --size 256 --seconds 3
+python3 .world/build_kit.py                            # 아틀라스 + 매니페스트 + zip
+npx gltf-transform optimize in.glb out.glb --compress meshopt --texture-compress webp \
+  --texture-size 2048 --simplify true --simplify-error 0.0002
 ```
 
 ## 사실 정확성

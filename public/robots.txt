@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sangwookp9591.github.io/3d-web-resume/sitemap.xml

@@ -93,6 +93,13 @@ function World() {
       connectors,
     });
 
+    // The engine's route dots label themselves with a span it fades to opacity:0, which
+    // axe (correctly) treats as unnamed. Name them from the same section labels.
+    el.querySelectorAll('.sw-route__dot').forEach((dot, i) => {
+      const label = sections[i]?.label;
+      if (label) dot.setAttribute('aria-label', `${label} 장면으로 이동`);
+    });
+
     // The engine's chrome and sky are position:fixed — they'd sit on top of the
     // cover and the closing sections. Only show them while the world is in view.
     const io = new IntersectionObserver(
@@ -249,10 +256,12 @@ export default function App() {
     <>
       <div className="sky" aria-hidden="true" />
       <Cover />
-      <World />
-      <Footprint />
-      <Principles />
-      <CharacterKit />
+      <main>
+        <World />
+        <Footprint />
+        <Principles />
+        <CharacterKit />
+      </main>
       <Colophon />
       <Guide />
     </>
