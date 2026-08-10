@@ -19,6 +19,7 @@ const PROMPTS = [
 const ENGINE_LABEL = {
   wiki: '위키에서 직접 인용',
   loading: 'Gemma 4 내려받는 중 %%',
+  error: 'Gemma 4를 못 올렸습니다 · 위키로 답합니다',
   ollama: 'Ollama · 이 컴퓨터에서',
   gemma: 'Gemma 4 · 브라우저 안에서',
 };
@@ -43,6 +44,8 @@ export default function Oracle() {
   const [pi, setPi] = useState(0);
   const [away, setAway] = useState(false);     // 커버를 벗어나면 비켜섭니다
   const [busy, setBusy] = useState(false);
+  const [fieldUp, setFieldUp] = useState(false);
+  const [broken, setBroken] = useState(false); // 파티클 장을 못 불러온 경우
   const brain = useOracleBrain();
 
   const canvasRef = useRef(null);
@@ -62,6 +65,12 @@ export default function Oracle() {
       field = await mount(canvasRef.current, panelRef.current, { onReveal: setReady });
       if (dead) { field.destroy(); return; }
       fieldRef.current = field;
+      setFieldUp(true);   // 아래 이펙트가 그동안 정해진 상태를 이제야 물려줍니다
+    }).catch((err) => {
+      // 청크가 안 올라오면 판은 CSS 초기값에 굳은 채 열려서, 눌러도 아무 일도 안 일어난
+      // 것처럼 보입니다. 조용히 실패하느니 검색창을 감춥니다.
+      console.error('[oracle] 파티클 장을 불러오지 못했습니다:', err);
+      setBroken(true);
     });
     return () => { dead = true; field?.destroy(); fieldRef.current = null; };
   }, []);
@@ -81,16 +90,22 @@ export default function Oracle() {
 
   const grow = useCallback(() => {
     setOpen(true);
-    fieldRef.current?.open();
     scrollTo({ top: 0, behavior: 'smooth' });   // 창은 화면 중앙에 있으니 세계도 처음으로
   }, []);
 
   const shrink = useCallback(() => {
     setOpen(false);
     setReady(false);
-    fieldRef.current?.close();
-    barRef.current?.focus();
   }, []);
+
+  /* 막에게 상태를 물려주는 곳은 여기 하나뿐입니다. fieldUp을 deps에 넣어야
+     장이 늦게 붙어도 그 사이에 정해진 상태(스크롤 복원 등)가 반영됩니다. */
+  useEffect(() => {
+    const field = fieldRef.current;
+    if (!field) return;
+    if (open) field.open(); else field.close();
+    field.setPaused(away && !open);
+  }, [open, away, fieldUp]);
 
   /* 어디에서든 / 또는 Cmd+K로 부르고, Esc로 접습니다. */
   useEffect(() => {
@@ -118,12 +133,23 @@ export default function Oracle() {
     return () => { root.inert = false; document.body.style.overflow = prev; };
   }, [open]);
 
+  /* 토큰 하나마다 turns가 새 배열이 되므로, 여기서 매번 smooth 스크롤을 걸면
+     애니메이션이 끝나기 전에 다시 시작돼 로그가 글을 따라가는 대신 떨립니다.
+     답이 흐르는 동안에는 즉시 붙이고, 다 끝났을 때만 부드럽게 맞춥니다. */
+  const streaming = turns[turns.length - 1]?.pending;
   useEffect(() => {
-    logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' });
-  }, [turns]);
+    const el = logRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: streaming ? 'auto' : 'smooth' });
+  }, [turns, streaming]);
 
-  // 커버를 벗어나면 막도 같이 물러납니다 — 안 그러면 세계 위에 파티클이 계속 떠 있습니다.
-  useEffect(() => { fieldRef.current?.setPaused(away && !open); }, [away, open]);
+  // 접을 때 포커스를 검색창으로 돌려놓습니다. 핸들러에서 바로 focus()하면 그 버튼이
+  // 아직 열림 상태의 aria-hidden/tabIndex=-1을 달고 있어서, 포커스와 접근성 트리가 어긋납니다.
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !open) barRef.current?.focus();
+    wasOpen.current = open;
+  }, [open]);
 
   const ask = async (e) => {
     e?.preventDefault();
@@ -139,8 +165,9 @@ export default function Oracle() {
 
     try {
       const full = await brain.ask(text, (piece) => patch((v) => ({ text: v.text + piece })));
-      // 스트리밍이 있었으면 이미 차 있고, 한 번에 온 답이면 여기서 채웁니다.
-      patch((v) => ({ text: v.text || full, pending: false }));
+      // 반환값이 언제나 최종본입니다. 스트리밍 도중 엔진이 죽으면 brain이 위키 답을 돌려주는데,
+      // 그때 이미 흘러온 반토막을 남겨두면 잘린 문장이 완성된 답처럼 보입니다.
+      patch(() => ({ text: full, pending: false }));
     } catch (err) {
       patch(() => ({ text: `답을 만들지 못했습니다: ${err.message}`, pending: false }));
     } finally {
@@ -155,7 +182,7 @@ export default function Oracle() {
       {open && <button type="button" className="orc__scrim" onClick={shrink} aria-label="닫기" />}
 
       <div
-        className={`orc__panel${open ? ' is-open' : ''}${away && !open ? ' is-away' : ''}`}
+        className={`orc__panel${open ? ' is-open' : ''}${(away && !open) || broken ? ' is-away' : ''}`}
         ref={panelRef}
         role={open ? 'dialog' : undefined}
         aria-modal={open ? 'true' : undefined}
@@ -182,7 +209,8 @@ export default function Oracle() {
             <span className={`orc__orb${busy ? ' is-busy' : ''}`} aria-hidden="true" />
             <span className="orc__id">
               <p className="orc__title">iron wiki</p>
-              <p className="orc__engine">{ENGINE_LABEL[brain.status === 'loading' ? 'loading' : brain.engine]
+              <p className="orc__engine">{ENGINE_LABEL[
+                brain.status === 'loading' || brain.status === 'error' ? brain.status : brain.engine]
                 .replace('%', Math.round(brain.progress * 100))}</p>
             </span>
             {brain.canEnableGemma && (
@@ -190,10 +218,17 @@ export default function Oracle() {
                 Gemma 4 켜기 <span aria-hidden="true">·</span> 3.4GB
               </button>
             )}
+            {brain.status === 'error' && (
+              <button type="button" className="orc__opt" onClick={brain.retryGemma} tabIndex={open ? 0 : -1}>
+                다시 시도
+              </button>
+            )}
             <button type="button" className="orc__x" onClick={shrink} tabIndex={open ? 0 : -1} aria-label="닫기">✕</button>
           </header>
 
-          <div className="orc__log" ref={logRef} role="log" aria-live="polite">
+          {/* aria-busy: 답이 흐르는 동안에는 스크린리더가 매 토큰마다 처음부터
+              다시 읽지 않고, 끝난 뒤에 한 번 읽습니다. */}
+          <div className="orc__log" ref={logRef} role="log" aria-live="polite" aria-busy={!!streaming}>
             {turns.length === 0
               ? <p className="orc__hint">이력 · 저장소 · 기술 스택 · 일하는 방식에 대해 물어보세요.</p>
               : turns.map((t, i) => (

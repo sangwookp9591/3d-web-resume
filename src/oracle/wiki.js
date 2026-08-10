@@ -185,7 +185,14 @@ RAG/pgvector는 계획과 인프라 준비(Dockerfile.postgres) 흔적만 있고
 ];
 
 
-const norm = (s) => s.toLowerCase().replace(/[^a-z0-9가-힣]+/g, ' ').trim();
+// 라틴과 한글이 붙어 있으면 떼어 놓습니다. "ArchUnit을"을 한 토큰으로 두면 한글이
+// 섞였다는 이유로 라틴 2-gram(ar·rc·ch…)이 생기는데, 태그 쪽 "archunit"은 순수 라틴이라
+// 2-gram이 없어서 서로 영영 만나지 못합니다 — 조사 하나 붙였다고 검색이 통째로 빕니다.
+const norm = (s) => s.toLowerCase()
+  .replace(/([a-z0-9])([가-힣])/g, '$1 $2')
+  .replace(/([가-힣])([a-z0-9])/g, '$1 $2')
+  .replace(/[^a-z0-9가-힣]+/g, ' ')
+  .trim();
 
 // ponytail: 형태소 분석기 대신 2-gram + 토큰 매칭. 한국어 조사("iron은", "권한을")가 붙어도
 // 2-gram이 뚫고 들어갑니다. 청크가 10개뿐이라 전체 스캔이 인덱스보다 쌉니다.

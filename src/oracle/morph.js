@@ -371,7 +371,16 @@ class Backend {
     const device = await adapter.requestDevice();
     // 셰이더·파이프라인 생성은 예외를 던지지 않으므로 error scope로 명시적으로 검증합니다.
     device.pushErrorScope('validation');
-    const be = new Backend(canvas, device);
+    let be;
+    try {
+      be = new Backend(canvas, device);
+    } catch (e) {
+      // 생성자가 던지면(캔버스가 이미 다른 컨텍스트를 잡고 있는 경우 등) 스코프도 안 닫히고
+      // 디바이스도 안 놓게 됩니다 — 파티클 버퍼와 파이프라인이 탭이 닫힐 때까지 남습니다.
+      await device.popErrorScope().catch(() => {});
+      device.destroy();
+      throw e;
+    }
     const err = await device.popErrorScope();
     if (err) { device.destroy(); throw new Error('WGSL: ' + err.message.split('\n')[0]); }
     return be;
@@ -481,7 +490,7 @@ class Backend {
     u[8] = Shape.anchor.x; u[9] = Shape.anchor.y; u[10] = Sim.morphVel; u[11] = dt;
     u[12] = Sim.pointer.x; u[13] = Sim.pointer.y; u[14] = Sim.pointer.active; u[15] = Sim.pointer.strength;
     u[16] = Sim.wave.x; u[17] = Sim.wave.y; u[18] = Sim.wave.t; u[19] = Sim.wave.amp;
-    u[20] = this.count; u[21] = 0; u[22] = Sim.reduced; u[23] = Sim.agitation;
+    u[20] = this.count; u[21] = 0; u[22] = Sim.reduced; u[23] = Sim.agitation;   // misc.y는 예비 슬롯
     u[24] = this.gw; u[25] = this.gh; u[26] = CFG.cell; u[27] = 0.42;
     d.queue.writeBuffer(this.uniBuf, 0, u);
 
@@ -544,9 +553,12 @@ export default async function mountMorph(canvas, panel, { onReveal } = {}) {
   const onMove = (e) => {
     Sim.pointer.x = e.clientX; Sim.pointer.y = e.clientY; Sim.pointer.active = 1;
   };
-  const onLeave = () => { Sim.pointer.active = 0; };
+  // pointerleave는 버블하지 않아서 window에 걸면 영영 안 옵니다 — 그러면 커서가 창을
+  // 떠난 뒤에도 파티클이 마지막 좌표를 계속 따라다닙니다. 창 밖으로 나가는 건
+  // relatedTarget이 없는 pointerout으로 알아냅니다.
+  const onOut = (e) => { if (!e.relatedTarget) Sim.pointer.active = 0; };
   addEventListener('pointermove', onMove, { passive: true });
-  addEventListener('pointerleave', onLeave, { passive: true });
+  document.addEventListener('pointerout', onOut, { passive: true });
 
   /* DOM에 반영. 패널은 항상 확장 크기로 두고 clip-path만 바꾸므로 레이아웃이 안 움직입니다. */
   let lastRev = -1;
@@ -622,7 +634,7 @@ export default async function mountMorph(canvas, panel, { onReveal } = {}) {
       cancelAnimationFrame(raf);
       removeEventListener('resize', resize);
       removeEventListener('pointermove', onMove);
-      removeEventListener('pointerleave', onLeave);
+      document.removeEventListener('pointerout', onOut);
       backend?.destroy();
     },
   };

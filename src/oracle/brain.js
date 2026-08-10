@@ -19,11 +19,6 @@ const SYSTEM = (ctx) => `너는 개발자 박상욱(iron, 아이언, 상욱)의 
 ${ctx}
 </자료>`;
 
-const context = (q) => {
-  const hits = retrieve(q, 3);
-  return hits.length ? hits.map((h) => `[${h.title}]\n${h.text}`).join('\n\n') : null;
-};
-
 /** Ollama가 이 컴퓨터에서 돌고 있는지.
     https로 배포된 사이트에서는 어차피 mixed content로 막히고, 시도 자체가 콘솔에
     빨간 줄을 남기므로(네트워크 오류는 catch해도 로그가 남습니다) 로컬에서만 두드립니다. */
@@ -41,9 +36,10 @@ async function findOllama() {
   }
 }
 
-async function askOllama(model, system, question, onToken) {
+async function askOllama(model, system, question, onToken, signal) {
   const r = await fetch(`${OLLAMA}/api/chat`, {
     method: 'POST',
+    signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model,
@@ -80,17 +76,6 @@ export default function useOracleBrain() {
   const workerRef = useRef(null);
   const pending = useRef(new Map());
 
-  useEffect(() => {
-    let dead = false;
-    findOllama().then((m) => {
-      if (dead || !m) return;
-      ollamaRef.current = m;
-      setEngine('ollama');
-      setStatus('ready');
-    });
-    return () => { dead = true; };
-  }, []);
-
   const spawn = useCallback(() => {
     if (workerRef.current) return workerRef.current;
     const w = new Worker(new URL('./llm.worker.js', import.meta.url), { type: 'module' });
@@ -103,6 +88,9 @@ export default function useOracleBrain() {
       else if (data.type === 'done') { pending.current.get(data.id)?.done(); pending.current.delete(data.id); }
       else if (data.type === 'error') { pending.current.get(data.id)?.fail(data.message); pending.current.delete(data.id); }
     };
+    // 워커가 아예 안 뜨면(모듈 워커 미지원, 청크 404) onmessage는 영영 안 옵니다.
+    // 잡아두지 않으면 헤더가 '내려받는 중 0%'에 붙박입니다.
+    w.onerror = (e) => { console.error('[oracle] 워커', e.message || e); setStatus('error'); };
     workerRef.current = w;
     return w;
   }, []);
@@ -110,24 +98,53 @@ export default function useOracleBrain() {
   const enableGemma = useCallback(() => {
     localStorage.setItem(CONSENT, '1');
     setStatus('loading');
+    setProgress(0);
     spawn().postMessage({ type: 'load' });
   }, [spawn]);
 
-  // 한 번 허락했다면 다음 방문에는 묻지 않고 바로 올립니다 (대개 캐시에서 옵니다).
+  /* Ollama 탐지가 끝난 다음에야 Gemma를 올릴지 정합니다. 탐지는 비동기라서
+     마운트 시점에 ollamaRef를 읽으면 언제나 비어 있고, 그대로 두면 Ollama가 도는
+     컴퓨터에서도 재방문자가 3.4GB를 다시 받습니다 — 그러고는 쓰지도 않습니다. */
   useEffect(() => {
-    if (localStorage.getItem(CONSENT) === '1' && !ollamaRef.current && !workerRef.current) enableGemma();
+    let dead = false;
+    findOllama().then((m) => {
+      if (dead) return;
+      if (m) {
+        ollamaRef.current = m;
+        setEngine('ollama');
+        setStatus('ready');
+        return;
+      }
+      // 한 번 허락했다면 다음 방문에는 묻지 않고 바로 올립니다 (대개 캐시에서 옵니다).
+      if (localStorage.getItem(CONSENT) === '1' && !workerRef.current) enableGemma();
+    });
+    return () => { dead = true; };
+  }, [enableGemma]);
+
+  // 실패했으면 워커를 버리고 다시 시도할 수 있게 합니다 — 안 그러면 localStorage를
+  // 직접 지우는 것 말고는 되살릴 방법이 없습니다.
+  const retryGemma = useCallback(() => {
+    workerRef.current?.terminate();
+    workerRef.current = null;
+    pending.current.clear();
+    enableGemma();
   }, [enableGemma]);
 
   useEffect(() => () => workerRef.current?.terminate(), []);
 
-  /** 질문 하나. onToken이 오면 스트리밍, 반환값은 완성된 답. */
+  /** 질문 하나. onToken이 오면 스트리밍, 반환값은 언제나 최종본입니다. */
   const ask = useCallback(async (question, onToken = () => {}) => {
-    const ctx = context(question);
-    if (!ctx) return lookup(question);          // 위키와 무관한 질문은 모델을 깨울 것도 없습니다
+    const hits = retrieve(question, 3);
+    if (!hits.length) return lookup(question);  // 위키와 무관한 질문은 모델을 깨울 것도 없습니다
+    const ctx = hits.map((h) => `[${h.title}]\n${h.text}`).join('\n\n');
+    const quote = () => hits.map((h) => `【${h.title}】\n${h.text}`).join('\n\n');
 
     try {
       if (ollamaRef.current) {
-        return await askOllama(ollamaRef.current, SYSTEM(ctx), question, onToken);
+        // 로컬 모델이 멎으면(런너 세그폴트 등) 읽기가 영영 안 끝나서 입력창이 잠깁니다.
+        const out = await askOllama(ollamaRef.current, SYSTEM(ctx), question, onToken,
+          AbortSignal.timeout(60_000));
+        return out.trim() || quote();
       }
       if (workerRef.current && status === 'ready') {
         const id = String(Date.now());
@@ -135,7 +152,7 @@ export default function useOracleBrain() {
         return await new Promise((resolve, reject) => {
           pending.current.set(id, {
             token: (t) => { out += t; onToken(t); },
-            done: () => resolve(out.trim() || lookup(question)),
+            done: () => resolve(out.trim() || quote()),
             fail: (m) => reject(new Error(m)),
           });
           workerRef.current.postMessage({ type: 'ask', id, system: SYSTEM(ctx), question });
@@ -144,7 +161,7 @@ export default function useOracleBrain() {
     } catch (e) {
       console.warn('[oracle] 모델이 답하지 못해 위키로 넘어갑니다:', e.message);
     }
-    return lookup(question);
+    return quote();
   }, [status]);
 
   return {
@@ -154,6 +171,7 @@ export default function useOracleBrain() {
     // 아직 아무 모델도 없고, 아직 허락을 안 받은 상태에서만 권합니다.
     canEnableGemma: engine === 'wiki' && status === 'idle',
     enableGemma,
+    retryGemma,
     ask,
   };
 }

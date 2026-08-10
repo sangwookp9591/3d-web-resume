@@ -154,29 +154,50 @@ a { color: inherit; }
 .cover {
   --px: 0; --py: 0;
   min-height: 100svh;
-  /* the bottom pad is Ai-ng's seat — the scroll cue must never sit under her */
-  padding: clamp(48px, 7vh, 84px) var(--gutter) clamp(112px, 15vh, 156px);
+  /* 상하 대칭이어야 stage 한복판이 곧 화면 한복판입니다. 아잉의 자리(하단)는
+     스크롤 큐를 흐름 밖으로 빼서 확보합니다. */
+  padding: clamp(48px, 7vh, 84px) var(--gutter);
   display: grid;
-  grid-template-rows: 1fr;      /* 판이 뷰포트 높이를 확정적으로 물려받게 */
+  grid-template-rows: 1fr;
   isolation: isolate;
   overflow: clip;
 }
+/* 검색창은 화면 한복판에 fixed로 떠 있고 커버는 그 자리를 비워 둡니다. 둘이 맞으려면
+   커버가 정확히 한 화면이어야 합니다 — min-height만으로는 자식의 height:100%가 기댈
+   기준이 없어서, fr 행이 남는 공간을 나누는 대신 콘텐츠 크기로 부풀어 오릅니다.
+   콘텐츠가 한 화면에 안 들어가는 낮은 뷰포트에서는 정렬을 포기하고 흐르게 둡니다. */
+@media (min-height: 720px) {
+  .cover { height: 100svh; }
+}
+/* 낮은 화면에서는 커버를 압축해서라도 한 화면에 넣습니다. 흐르게 두면 화면 한복판의
+   검색창이 이름 판 위에 겹쳐 앉아 제목을 덮습니다. 본문 안내("아래 창에 물어보세요")는
+   검색창이 바로 아래 보이는 상황에서는 없어도 읽힙니다. */
+@media (max-height: 719px) {
+  .cover { height: 100svh; }
+  .plate__body { display: none; }
+  .plate__title { font-size: clamp(1.4rem, 5.6vw, 1.9rem); }
+  .plate--name { padding: clamp(18px, 3vw, 28px); }
+}
 
-/* 검색창이 화면 한복판에 앉도록 판을 위·아래로 갈라놓습니다. 두 개의 1fr이
-   같은 높이를 먹으므로, 이름 판이 아무리 길어져도 검색창의 중심은 안 움직입니다. */
+/* 검색창이 화면 한복판에 앉도록 판을 위·아래로 갈라놓습니다.
+   height:100%가 핵심입니다 — 높이가 미확정이면 fr 행은 남는 공간을 나누는 대신
+   서로 크기를 맞추려 들어서, 이름 판 높이가 아래 행에 복사되고 커버가 뷰포트의
+   1.4배로 늘어납니다. minmax(0,·)만으로는 그걸 막지 못합니다. */
 .cover__stage {
   position: relative;
   width: min(1080px, 100%);
+  height: 100%;
+  min-height: 0;
   margin-inline: auto;
   perspective: 1400px;
   display: grid;
-  /* minmax(0,·) 없이 두면 fr끼리 서로 크기를 맞추려다 이름 판 높이가 아래 행에도
-     복사되어 커버가 뷰포트의 1.5배로 늘어납니다. */
-  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: start;
 }
 .plate--name { align-self: end; }
 .plate--stats { align-self: start; }
+/* 큐는 판을 가르는 세 행에 끼지 않습니다 — 끼면 검색창 자리가 그만큼 위로 밀립니다. */
+.cue { position: absolute; bottom: 0; left: 0; }
 
 /* A seal stamped in the corner of the sky, not a headline. Physical top/right on
    purpose: with writing-mode vertical-rl the logical inset properties remap onto
@@ -504,8 +525,12 @@ a { color: inherit; }
   .cover__seal { font-size: clamp(2.6rem, 15vw, 4.6rem); inset-block-start: -14px; }
 }
 @media (max-width: 620px) {
-  /* Ai-ng stacks (bubble under the cat) so she needs more room under the cover copy */
-  .cover { padding-block-end: 230px; }
+  /* 커버 패딩은 상하 대칭을 지킵니다 — 아래만 키우면 검색창 자리가 그만큼 위로
+     밀려서 화면 한복판의 판과 어긋나고, 수치 판이 그 아래 깔립니다.
+     세로로 쌓이는 아잉의 자리는 큐를 위로 올려 확보합니다. */
+  .cue { bottom: 104px; }
+  /* 좁은 화면에서 넷이 1열로 쌓이면 커버가 한 화면을 넘습니다. */
+  .plate--stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
   .aing { align-items: flex-end; flex-direction: column; gap: 8px; }
   .aing__say { margin: 0; border-radius: 18px 18px 18px 5px; }
   .aing__cat { align-self: flex-end; }
@@ -654,8 +679,10 @@ a { color: inherit; }
    판은 화면 중앙에 fixed로 하나뿐입니다. 접힘/펼침은 clip-path만 바뀌고,
    그 형태는 GPU 파티클이 만드는 막(orc__fx)이 잡습니다. 레이아웃은 안 움직입니다. */
 
-/* 커버 그리드 안에 검색창 높이만큼의 자리만 남깁니다 — 판 자체는 흐름 밖입니다. */
-.oracle-slot { height: 100px; }
+/* 커버 그리드 안에 검색창 높이만큼의 자리만 남깁니다 — 판 자체는 흐름 밖입니다.
+   높이는 morph.js가 --bar-h로 발행합니다. 폴백 100px은 그 장이 붙기 전 한 프레임용이고,
+   여기 적힌 숫자가 CFG.collapsed.hy*2와 어긋나도 장이 붙는 순간 바로잡힙니다. */
+.oracle-slot { height: var(--bar-h, 100px); margin-block: clamp(14px, 2.4vh, 26px); }
 
 .orc__fx {
   position: fixed;
@@ -738,7 +765,6 @@ a { color: inherit; }
   text-align: left;
   cursor: text;
   opacity: var(--rev-bar, 1);
-  pointer-events: var(--bar-pe, auto);
 }
 .orc__panel.is-open .orc__bar { pointer-events: none; }
 .orc__bar:focus-visible { outline: 2px solid var(--accent); outline-offset: -6px; border-radius: 24px; }
@@ -833,7 +859,6 @@ a { color: inherit; }
   background: color-mix(in oklab, var(--paper) 88%, transparent);
 }
 .orc__title {
-  flex: 1;
   margin: 0;
   font-family: var(--font-display);
   font-size: 1.04rem;
