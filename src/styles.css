@@ -665,7 +665,11 @@ a { color: inherit; }
   display: block;
   pointer-events: none;
   z-index: 88;
+  transition: opacity 340ms ease;
 }
+/* 판이 물러나면 막도 같이 지워집니다. 지우기 전에 렌더가 멈추므로 마지막 프레임이
+   남는데, 페이드가 그걸 덮습니다. */
+.orc__fx.is-away { opacity: 0; }
 
 .orc__scrim {
   position: fixed;

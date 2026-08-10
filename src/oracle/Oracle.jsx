@@ -122,6 +122,9 @@ export default function Oracle() {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' });
   }, [turns]);
 
+  // 커버를 벗어나면 막도 같이 물러납니다 — 안 그러면 세계 위에 파티클이 계속 떠 있습니다.
+  useEffect(() => { fieldRef.current?.setPaused(away && !open); }, [away, open]);
+
   const ask = async (e) => {
     e?.preventDefault();
     const text = q.trim();

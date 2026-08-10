@@ -571,7 +571,7 @@ export default async function mountMorph(canvas, panel, { onReveal } = {}) {
     if (rev !== lastRev) { lastRev = rev; onReveal?.(rev === 1); }
   };
 
-  let raf = 0, last = performance.now(), alive = true;
+  let raf = 0, last = performance.now(), alive = true, paused = false;
   let fpsAcc = 0, fpsN = 0, slow = 0;
   const loop = (now) => {
     if (!alive) return;
@@ -580,6 +580,9 @@ export default async function mountMorph(canvas, panel, { onReveal } = {}) {
     last = now;
     if (dt > 0.05) dt = 0.05;     // 탭 복귀 후 폭주 방지
     if (dt <= 0) return;
+    // 판이 화면 밖으로 밀렸으면 아무것도 하지 않습니다 — 세계를 보는 동안 GPU를
+    // 파티클에 쓰면 스크럽하는 영상이 프레임을 잃습니다.
+    if (paused) return;
 
     Sim.step(dt);
     applyDOM();
@@ -609,6 +612,11 @@ export default async function mountMorph(canvas, panel, { onReveal } = {}) {
     close() { setTarget(0); },
     toggle() { setTarget(Sim.morphTarget > 0.5 ? 0 : 1); },
     stir(amount) { Sim.agitationTarget = clamp01(amount); },
+    setPaused(v) {
+      paused = !!v;
+      canvas.classList.toggle('is-away', paused);
+      if (!paused) last = performance.now();   // 멈춰 있던 시간이 dt로 쏟아지지 않게
+    },
     destroy() {
       alive = false;
       cancelAnimationFrame(raf);
