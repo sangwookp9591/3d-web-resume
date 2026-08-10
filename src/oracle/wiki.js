@@ -87,8 +87,9 @@ shared 코어(API 레이어 4계층화, Lexical 에디터, 공통 훅)에 713커
   },
   {
     id: 'back',
+    overview: true,   // 아래 search·ai·coupon이 이 조각의 세부다
     title: 'BACK — 검색·AI·쿠폰·통계 주도',
-    tags: '백엔드 back spring springboot java 자바 서버 api 최다기여 도메인 호텔',
+    tags: '백엔드 back spring springboot 스프링 스프링부트 java 자바 서버 api 최다기여 도메인 호텔',
     text: `Spring Boot API 저장소에서 1,512 커밋으로 최다 기여자(약 33%)였습니다.
 검색·AI·쿠폰·프로모션·통계 도메인을 주도했고, 호텔 도메인에만 227커밋이 있습니다.
 성능 개선은 OpenSearch 재색인 파이프라인, 회복탄력성은 멀티 LLM 프로바이더 계층,
@@ -149,7 +150,7 @@ E2E 플레이크는 하이드레이션 유틸과 burn-in으로 계층에서 차�
   {
     id: 'stack',
     title: '스택',
-    tags: '스택 기술 언어 프레임워크 tech stack 무엇을 사용 도구 라이브러리 경험 다룰수있는 목록',
+    tags: '스택 기술 언어 프레임워크 tech stack 사용 도구 라이브러리 다룰수있는 목록 리액트 넥스트 자바스크립트 타입스크립트',
     text: `프론트: Next.js 16, React 19, vanilla-extract + Sprinkles, StyleX, Vite, Playwright, TypeScript, FSD.
 백엔드: Spring Boot 3.5, Java, JPA, OpenSearch, Redis, ShedLock, Resilience4j, ArchUnit, Testcontainers, DDD/Hexagonal.
 그 외: WebGPU/WGSL, three.js, 온디바이스 LLM(transformers.js), 멀티 LLM 프로바이더 연동, 이미지·영상 생성 파이프라인.`,
@@ -190,6 +191,13 @@ const norm = (s) => s.toLowerCase().replace(/[^a-z0-9가-힣]+/g, ' ').trim();
 // 2-gram이 뚫고 들어갑니다. 청크가 10개뿐이라 전체 스캔이 인덱스보다 쌉니다.
 const words = (s) => new Set(norm(s).split(' ').filter((w) => w.length > 1));
 
+// 어느 조각에나 나올 법한 서술어들. 이걸 안 빼면 "설계"가 어쩌다 한 제목에만 있다는
+// 이유로 희소어 취급을 받아, "쿠폰은 왜 새로 설계했어?"에 결제 조각이 1등을 합니다.
+const STOP = new Set([
+  '설계', '구현', '개발', '만들', '했어', '하나', '어떻게', '무엇', '뭐야', '뭔가',
+  '대해', '이야기', '알려', '한거', '했나', '했는', '하는', '있어', '있나', '싶어',
+]);
+
 const grams = (s) => {
   const out = words(s);
   // 2-gram은 제목·태그에만. 본문까지 넣으면 긴 청크가 우연한 음절 겹침으로 이기고,
@@ -200,6 +208,7 @@ const grams = (s) => {
     if (!/[가-힣]/.test(w)) continue;
     for (let i = 0; i < w.length - 1; i++) out.add(w.slice(i, i + 2));
   }
+  for (const g of STOP) out.delete(g);
   return out;
 };
 
@@ -230,10 +239,13 @@ function rank(query, k) {
   if (!q.size) return null;
   const out = HAY.map((w) => {
     let s = 0;
-    for (const g of q) if (w.hay.has(g)) s += (w.tagHay.has(g) ? 3 : 1) / DF.get(g);
+    for (const g of q) if (w.hay.has(g)) s += (w.tagHay.has(g) ? 5 : 1) / DF.get(g);
     // 길이 정규화(BM25의 b항과 같은 꼴). 개요 조각은 온갖 말을 다 담고 있어서 안 나누면
     // "쿠폰"을 물어도 백엔드 개요가 1등을 하고, 제곱근으로 나누면 반대로 가장 짧은
     // 조각이 아무 질문에나 튀어나옵니다. 평균 길이 기준으로 완만하게만 눌러야 합니다.
+    // 개요 조각은 거느린 세부 조각의 주제어를 전부 품고 있어서, 양보시키지 않으면
+    // "쿠폰"을 물어도 쿠폰 조각이 아니라 백엔드 개요가 1등을 합니다.
+    if (w.overview) s *= 0.55;
     return { w, s: s / (0.62 + 0.38 * (w.hay.size / AVG_LEN)) };
   })
     .filter((r) => r.s > 0)
