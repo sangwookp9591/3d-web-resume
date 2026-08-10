@@ -125,8 +125,30 @@ a { color: inherit; }
 
 /* The clips already have the sky painted into them, so the engine's backdrop has
    to be that same sky — not its own gradient — or the seam at the clip edge shows. */
-#world .sw-sky { background: image-set(url('/assets/sky.webp') 1x) center / cover no-repeat, var(--sky); }
+#world .sw-sky { background: url('/assets/sky.webp') center top / cover no-repeat, var(--sky); }
 #world .sw-sky__grad, #world .sw-sky__glow { display: none; }
+
+/* This page's `a { color: inherit }` is unlayered, so it beats the engine's
+   @layer sw rule and painted the navy CTA's label navy-on-navy. Put it back. */
+#world .sw-btn--primary, #world .sw-topcta { color: var(--cloud); }
+
+/* The engine builds its copy scrim out of --sw-bg. Ours is a pale sky, so over a
+   sunlit scene the scrim all but vanished — thicken it without touching the sky. */
+#world .sw-copylayer::before {
+  background: linear-gradient(90deg,
+    color-mix(in oklab, var(--cloud) 94%, transparent) 0%,
+    color-mix(in oklab, var(--cloud) 82%, transparent) 40%,
+    color-mix(in oklab, var(--cloud) 38%, transparent) 68%,
+    transparent 100%);
+}
+@media (max-width: 860px) {
+  #world .sw-copylayer::before {
+    background: linear-gradient(0deg,
+      color-mix(in oklab, var(--cloud) 95%, transparent) 10%,
+      color-mix(in oklab, var(--cloud) 78%, transparent) 50%,
+      transparent 100%);
+  }
+}
 
 /* ══ Cover ══════════════════════════════════════════════════════════════ */
 .cover {
