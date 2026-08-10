@@ -3,7 +3,7 @@
 
 export const STAGES = [
   'cover', 'genesis', 'immunity', 'gatehouse', 'observatory', 'vault',
-  'footprint', 'principles', 'colophon',
+  'footprint', 'principles', 'kit', 'colophon',
 ];
 
 export const SCRIPT = {
@@ -38,6 +38,10 @@ export const SCRIPT = {
   principles: {
     pose: 'creed',
     text: 'iron이 일하는 방식 세 가지야. 난 첫 번째가 제일 좋아 — 규칙은 사람 기억이 아니라 도구가 지키는 거래.',
+  },
+  kit: {
+    pose: 'wow',
+    text: '어? 내 얘기다! 표정이랑 동작을 잔뜩 만들어놨어. three.js든 Unity든 가져다 써도 돼.',
   },
   colophon: {
     pose: 'bow',

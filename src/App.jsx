@@ -4,6 +4,7 @@ import mountScrollWorld from './scrub-engine.js';
 import { sections, connectors } from './worldConfig.js';
 import { SCRIPT } from './guideScript.js';
 import useStage from './useStage.js';
+import CharacterKit from './CharacterKit.jsx';
 
 /* ── Cover ────────────────────────────────────────────────────────────────
    Spatial UI: planes at different depths. The pointer moves the camera, not
@@ -232,6 +233,7 @@ export default function App() {
       <World />
       <Footprint />
       <Principles />
+      <CharacterKit />
       <Colophon />
       <Guide />
     </>
