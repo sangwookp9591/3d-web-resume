@@ -1,0 +1,77 @@
+/* Gemma 4를 브라우저 안에서 돌립니다. 서버로 아무것도 보내지 않습니다.
+   메인 스레드에서 돌리면 생성 한 번에 UI가 통째로 멈추므로 워커에 가둡니다.
+
+   모델: onnx-community/gemma-4-E2B-it-ONNX (q4f16, 약 3.4GB)
+   두 번째 방문부터는 브라우저 캐시에서 바로 올라옵니다. */
+import { AutoProcessor, Gemma4ForConditionalGeneration, TextStreamer } from '@huggingface/transformers';
+
+const MODEL = 'onnx-community/gemma-4-E2B-it-ONNX';
+
+let processor = null;
+let model = null;
+let loading = null;
+
+// 파일별 진행률을 합산합니다 — 파일 하나가 끝날 때마다 0%로 되돌아가면 진행 중인지 알 수 없습니다.
+const files = new Map();
+const reportProgress = () => {
+  let loaded = 0, total = 0;
+  for (const f of files.values()) { loaded += f.loaded; total += f.total; }
+  if (total > 0) postMessage({ type: 'progress', ratio: loaded / total, mb: Math.round(loaded / 1e6) });
+};
+
+async function load() {
+  if (loading) return loading;
+  loading = (async () => {
+    postMessage({ type: 'status', status: 'loading' });
+    processor = await AutoProcessor.from_pretrained(MODEL);
+    model = await Gemma4ForConditionalGeneration.from_pretrained(MODEL, {
+      dtype: 'q4f16',
+      device: 'webgpu',
+      progress_callback: (info) => {
+        if (info.status === 'progress' && info.total) {
+          files.set(info.file, { loaded: info.loaded ?? 0, total: info.total });
+          reportProgress();
+        }
+      },
+    });
+    postMessage({ type: 'status', status: 'ready' });
+  })().catch((err) => {
+    loading = null;
+    postMessage({ type: 'status', status: 'error', message: String(err?.message || err) });
+    throw err;
+  });
+  return loading;
+}
+
+async function ask({ id, system, question }) {
+  await load();
+  const messages = [
+    { role: 'system', content: [{ type: 'text', text: system }] },
+    { role: 'user', content: [{ type: 'text', text: question }] },
+  ];
+  const prompt = processor.apply_chat_template(messages, {
+    enable_thinking: false,       // 이력 문답에 사고 과정은 필요 없고, 첫 글자까지가 훨씬 빨라집니다
+    add_generation_prompt: true,
+  });
+  // 프로세서 시그니처는 (text, images, audio, options) — 텍스트만 쓰므로 둘은 null입니다.
+  const inputs = await processor(prompt, null, null, { add_special_tokens: false });
+
+  const streamer = new TextStreamer(processor.tokenizer, {
+    skip_prompt: true,
+    skip_special_tokens: true,
+    callback_function: (text) => postMessage({ type: 'token', id, text }),
+  });
+
+  await model.generate({ ...inputs, max_new_tokens: 320, do_sample: false, streamer });
+  postMessage({ type: 'done', id });
+}
+
+self.onmessage = async (e) => {
+  const msg = e.data;
+  try {
+    if (msg.type === 'load') await load();
+    else if (msg.type === 'ask') await ask(msg);
+  } catch (err) {
+    postMessage({ type: 'error', id: msg.id, message: String(err?.message || err) });
+  }
+};

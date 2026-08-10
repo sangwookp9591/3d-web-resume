@@ -921,6 +921,43 @@ a { color: inherit; }
 .orc__send:disabled { opacity: 0.4; cursor: default; }
 .orc__send:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* 헤더의 신원과 엔진 표시 */
+.orc__id { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.orc__engine {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
+}
+.orc__opt {
+  flex: none;
+  border: 1px solid var(--rim-low);
+  background: color-mix(in oklab, #ffffff 52%, transparent);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 6px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.orc__opt:hover { background: color-mix(in oklab, #ffffff 78%, transparent); color: var(--ink); }
+.orc__opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.orc__orb.is-busy { animation: orc-orb 1.6s linear infinite; }
+
+/* 답이 오기 전의 세 점 */
+.orc__dots { display: inline-flex; gap: 4px; padding: 2px 0; }
+.orc__dots i {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--ink) 42%, transparent);
+  animation: orc-dot 1.1s ease-in-out infinite;
+}
+.orc__dots i:nth-child(2) { animation-delay: 0.16s; }
+.orc__dots i:nth-child(3) { animation-delay: 0.32s; }
+@keyframes orc-dot { 0%, 100% { opacity: 0.25; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-3px); } }
+
 @media (prefers-reduced-motion: reduce) {
   /* 전역 규칙이 모든 애니메이션을 0.01ms로 줄이는데, 신기루는 그러면 '증발한' 끝
      상태로 굳어 글자가 사라집니다. 여기서는 아예 애니메이션을 걷어냅니다. */

@@ -111,19 +111,34 @@ const HAY = WIKI.map((w) => {
   return { ...w, hay: new Set([...tagHay, ...words(w.text)]), tagHay };
 });
 
+// 문서 빈도. "iron", "커밋"처럼 거의 모든 조각에 나오는 말은 주제를 가르지 못하므로
+// 가중치를 나눠 떨어뜨립니다 — 안 하면 이름만 들어가도 소개 조각이 1등을 합니다.
+const DF = new Map();
+for (const w of HAY) for (const g of w.hay) DF.set(g, (DF.get(g) ?? 0) + 1);
+
+// 이 위키는 통째로 한 사람에 대한 글이라, 이름은 어느 질문에 붙어도 주제를 못 가릅니다.
+// 이름을 뺀 질문으로 먼저 찾고, 그러고도 남는 게 없을 때만 이름으로 찾습니다.
+const NAME = /(iron|아이언|박상욱|상욱)/gi;
+
 /** 질문과 관련 있는 위키 조각을 점수순으로. 매칭이 하나도 없으면 빈 배열. */
 export function retrieve(query, k = 3) {
+  const stripped = query.replace(NAME, ' ').trim();
+  return rank(stripped, k) ?? rank(query, k) ?? [];
+}
+
+function rank(query, k) {
   const q = grams(query);
-  if (!q.size) return [];
-  return HAY.map((w) => {
+  if (!q.size) return null;
+  const out = HAY.map((w) => {
     let s = 0;
-    for (const g of q) if (w.hay.has(g)) s += w.tagHay.has(g) ? 3 : 1;
+    for (const g of q) if (w.hay.has(g)) s += (w.tagHay.has(g) ? 3 : 1) / DF.get(g);
     return { w, s };
   })
     .filter((r) => r.s > 0)
     .sort((a, b) => b.s - a.s)
     .slice(0, k)
     .map((r) => r.w);
+  return out.length ? out : null;
 }
 
 /** 모델 없이도 답이 되는 폴백: 가장 가까운 조각을 그대로 인용합니다. */

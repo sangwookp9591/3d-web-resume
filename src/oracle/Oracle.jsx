@@ -5,7 +5,7 @@
    답은 위키가 하고, 다음 단계에서 브라우저 안의 Gemma 4로 넘어갑니다. */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { lookup } from './wiki.js';
+import useOracleBrain from './brain.js';
 
 const PROMPTS = [
   'iron은 어떤 개발자인가요?',
@@ -15,6 +15,13 @@ const PROMPTS = [
   '쿠폰 도메인을 왜 새로 설계했나요?',
   '어떤 기술 스택을 쓰나요?',
 ];
+
+const ENGINE_LABEL = {
+  wiki: '위키에서 직접 인용',
+  loading: 'Gemma 4 내려받는 중 %%',
+  ollama: 'Ollama · 이 컴퓨터에서',
+  gemma: 'Gemma 4 · 브라우저 안에서',
+};
 
 /* 신기루: 글자가 하나씩 흐려지며 맺혔다가 다시 하나씩 증발합니다.
    한 스팬에 in/out 애니메이션을 이어 붙여 레이어를 겹치지 않습니다. */
@@ -35,6 +42,8 @@ export default function Oracle() {
   const [turns, setTurns] = useState([]);
   const [pi, setPi] = useState(0);
   const [away, setAway] = useState(false);     // 커버를 벗어나면 비켜섭니다
+  const [busy, setBusy] = useState(false);
+  const brain = useOracleBrain();
 
   const canvasRef = useRef(null);
   const panelRef = useRef(null);
@@ -102,14 +111,28 @@ export default function Oracle() {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' });
   }, [turns]);
 
-  const ask = (e) => {
+  const ask = async (e) => {
     e?.preventDefault();
     const text = q.trim();
-    if (!text) return;
+    if (!text || busy) return;
     setQ('');
-    fieldRef.current?.stir(1);                 // 답하는 동안 막이 술렁입니다
-    setTurns((t) => [...t, { role: 'you', text }, { role: 'aing', text: lookup(text) }]);
-    setTimeout(() => fieldRef.current?.stir(0), 900);
+    setBusy(true);
+    fieldRef.current?.stir(1);                 // 생각하는 동안 막이 술렁입니다
+
+    const id = String(Date.now());
+    const patch = (fn) => setTurns((t) => t.map((v) => (v.id === id ? { ...v, ...fn(v) } : v)));
+    setTurns((t) => [...t, { role: 'you', text, id: `${id}q` }, { role: 'aing', text: '', id, pending: true }]);
+
+    try {
+      const full = await brain.ask(text, (piece) => patch((v) => ({ text: v.text + piece })));
+      // 스트리밍이 있었으면 이미 차 있고, 한 번에 온 답이면 여기서 채웁니다.
+      patch((v) => ({ text: v.text || full, pending: false }));
+    } catch (err) {
+      patch(() => ({ text: `답을 만들지 못했습니다: ${err.message}`, pending: false }));
+    } finally {
+      setBusy(false);
+      fieldRef.current?.stir(0);
+    }
   };
 
   const panel = (
@@ -142,8 +165,17 @@ export default function Oracle() {
         {/* 펼친 모습: 같은 판 안에서 자라난 채팅 */}
         <div className="orc__chat" aria-hidden={!open || undefined}>
           <header className="orc__head">
-            <span className="orc__orb" aria-hidden="true" />
-            <p className="orc__title">iron wiki</p>
+            <span className={`orc__orb${busy ? ' is-busy' : ''}`} aria-hidden="true" />
+            <span className="orc__id">
+              <p className="orc__title">iron wiki</p>
+              <p className="orc__engine">{ENGINE_LABEL[brain.status === 'loading' ? 'loading' : brain.engine]
+                .replace('%', Math.round(brain.progress * 100))}</p>
+            </span>
+            {brain.canEnableGemma && (
+              <button type="button" className="orc__opt" onClick={brain.enableGemma} tabIndex={open ? 0 : -1}>
+                Gemma 4 켜기 <span aria-hidden="true">·</span> 3.4GB
+              </button>
+            )}
             <button type="button" className="orc__x" onClick={shrink} tabIndex={open ? 0 : -1} aria-label="닫기">✕</button>
           </header>
 
@@ -151,7 +183,9 @@ export default function Oracle() {
             {turns.length === 0
               ? <p className="orc__hint">이력 · 저장소 · 기술 스택 · 일하는 방식에 대해 물어보세요.</p>
               : turns.map((t, i) => (
-                  <p className={`orc__turn orc__turn--${t.role}`} key={i}>{t.text}</p>
+                  <p className={`orc__turn orc__turn--${t.role}`} key={t.id ?? i}>
+                    {t.text || <span className="orc__dots" aria-label="생각 중"><i /><i /><i /></span>}
+                  </p>
                 ))}
           </div>
 
