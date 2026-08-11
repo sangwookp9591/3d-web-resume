@@ -4,10 +4,11 @@
    새 창도, 페이지 이동도 없습니다. 형태는 GPU 파티클 수만 개가 만드는 막이 잡고,
    DOM은 같은 형태로 clip-path만 바뀝니다.
 
-   답은 위키가 하고, 다음 단계에서 브라우저 안의 Gemma 4로 넘어갑니다. */
+   답은 위키가 하고, 방문자가 허락하면 브라우저 안의 소형 모델로 넘어갑니다(models.js). */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useOracleBrain from './brain.js';
+import { MODELS, sizeLabel } from './models.js';
 
 const PROMPTS = [
   'iron은 어떤 개발자인가요?',
@@ -18,12 +19,13 @@ const PROMPTS = [
   '어떤 기술 스택을 쓰나요?',
 ];
 
-const ENGINE_LABEL = {
-  wiki: '위키에서 직접 인용',
-  loading: 'Gemma 4 내려받는 중 %%',
-  error: 'Gemma 4를 못 올렸습니다 · 위키로 답합니다',
-  ollama: 'Ollama · 이 컴퓨터에서',
-  gemma: 'Gemma 4 · 브라우저 안에서',
+const engineLabel = (brain) => {
+  const name = brain.model.label;
+  if (brain.status === 'loading') return `${name} 내려받는 중 ${Math.round(brain.progress * 100)}%`;
+  if (brain.status === 'error') return `${name}를 못 올렸습니다 · 위키로 답합니다`;
+  if (brain.engine === 'ollama') return 'Ollama · 이 컴퓨터에서';
+  if (brain.engine === 'local') return `${name} · 브라우저 안에서`;
+  return '위키에서 직접 인용';
 };
 
 /* 신기루: 글자가 하나씩 흐려지며 맺혔다가 다시 하나씩 증발합니다.
@@ -214,17 +216,21 @@ export default function Oracle() {
             <span className={`orc__orb${busy ? ' is-busy' : ''}`} aria-hidden="true" />
             <span className="orc__id">
               <p className="orc__title">iron wiki</p>
-              <p className="orc__engine">{ENGINE_LABEL[
-                brain.status === 'loading' || brain.status === 'error' ? brain.status : brain.engine]
-                .replace('%', Math.round(brain.progress * 100))}</p>
+              <p className="orc__engine">{engineLabel(brain)}</p>
             </span>
-            {brain.canEnableGemma && (
-              <button type="button" className="orc__opt" onClick={brain.enableGemma} tabIndex={open ? 0 : -1}>
-                Gemma 4 켜기 <span aria-hidden="true">·</span> 3.4GB
+            {brain.canEnableModel && MODELS.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                className="orc__opt"
+                onClick={() => brain.enableModel(m.id)}
+                tabIndex={open ? 0 : -1}
+              >
+                {m.label} 켜기 <span aria-hidden="true">·</span> {sizeLabel(m)}
               </button>
-            )}
+            ))}
             {brain.status === 'error' && (
-              <button type="button" className="orc__opt" onClick={brain.retryGemma} tabIndex={open ? 0 : -1}>
+              <button type="button" className="orc__opt" onClick={brain.retryModel} tabIndex={open ? 0 : -1}>
                 다시 시도
               </button>
             )}

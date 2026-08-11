@@ -1,15 +1,18 @@
 /* 답을 만드는 쪽. 세 갈래가 있고 위에서부터 되는 것을 씁니다.
 
    1) ollama — 이 컴퓨터에서 Ollama가 돌고 있으면 그쪽에 물어봅니다 (내려받을 게 없음)
-   2) gemma  — 브라우저 안에서 WebGPU로 Gemma 4를 돌립니다 (최초 1회 약 3.4GB)
+   2) local  — 브라우저 안에서 WebGPU로 소형 모델을 돌립니다 (최초 1회, 기본 570MB)
    3) wiki   — 모델이 없어도 위키 조각을 그대로 인용해 답합니다
 
    어느 쪽이든 근거는 같은 위키이고, 질문은 밖으로 나가지 않습니다. */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { retrieve, lookup } from '@/lib/wiki';
+import { DEFAULT_MODEL, byId } from './models.js';
 
 const OLLAMA = 'http://localhost:11434';
-const CONSENT = 'oracle:gemma-ok';   // 3.4GB를 한 번 허락했으면 다음부터는 묻지 않습니다
+// 한 번 허락했으면 다음부터는 묻지 않습니다. 어느 모델을 허락했는지까지 기억해야
+// 재방문자가 고르지도 않은 모델을 받는 일이 없습니다.
+const CONSENT = 'oracle:model';
 
 const SYSTEM = (ctx) => `너는 개발자 박상욱(iron, 아이언, 상욱)의 이력 위키를 대신 읽어 주는 안내자다.
 아래 <자료>에 적힌 것만 근거로 한국어로 답한다. 3문장 이내로 짧고 담백하게.
@@ -29,7 +32,7 @@ async function findOllama() {
     if (!r.ok) return null;
     const { models = [] } = await r.json();
     const names = models.map((m) => m.name);
-    // gemma가 있으면 gemma로 — 이 페이지가 약속한 모델이기 때문입니다.
+    // gemma가 있으면 gemma로 — 이 페이지가 오래 약속해 온 모델이기 때문입니다.
     return names.find((n) => n.startsWith('gemma')) ?? names[0] ?? null;
   } catch {
     return null;
@@ -69,9 +72,10 @@ async function askOllama(model, system, question, onToken, signal) {
 }
 
 export default function useOracleBrain() {
-  const [engine, setEngine] = useState('wiki');   // wiki | ollama | gemma
+  const [engine, setEngine] = useState('wiki');   // wiki | ollama | local
   const [status, setStatus] = useState('idle');   // idle | loading | ready | error
   const [progress, setProgress] = useState(0);
+  const [model, setModel] = useState(DEFAULT_MODEL);
   const ollamaRef = useRef(null);
   const workerRef = useRef(null);
   const pending = useRef(new Map());
@@ -83,7 +87,8 @@ export default function useOracleBrain() {
       if (data.type === 'progress') setProgress(data.ratio);
       else if (data.type === 'status') {
         setStatus(data.status);
-        if (data.status === 'ready') { setEngine('gemma'); setProgress(1); }
+        if (data.model) setModel(byId(data.model));
+        if (data.status === 'ready') { setEngine('local'); setProgress(1); }
       } else if (data.type === 'token') pending.current.get(data.id)?.token(data.text);
       else if (data.type === 'done') { pending.current.get(data.id)?.done(); pending.current.delete(data.id); }
       else if (data.type === 'error') { pending.current.get(data.id)?.fail(data.message); pending.current.delete(data.id); }
@@ -95,16 +100,18 @@ export default function useOracleBrain() {
     return w;
   }, []);
 
-  const enableGemma = useCallback(() => {
-    localStorage.setItem(CONSENT, '1');
+  const enableModel = useCallback((id) => {
+    const spec = byId(id);
+    localStorage.setItem(CONSENT, spec.id);
+    setModel(spec);
     setStatus('loading');
     setProgress(0);
-    spawn().postMessage({ type: 'load' });
+    spawn().postMessage({ type: 'load', model: spec.id });
   }, [spawn]);
 
-  /* Ollama 탐지가 끝난 다음에야 Gemma를 올릴지 정합니다. 탐지는 비동기라서
+  /* Ollama 탐지가 끝난 다음에야 모델을 올릴지 정합니다. 탐지는 비동기라서
      마운트 시점에 ollamaRef를 읽으면 언제나 비어 있고, 그대로 두면 Ollama가 도는
-     컴퓨터에서도 재방문자가 3.4GB를 다시 받습니다 — 그러고는 쓰지도 않습니다. */
+     컴퓨터에서도 재방문자가 수백 MB를 다시 받습니다 — 그러고는 쓰지도 않습니다. */
   useEffect(() => {
     let dead = false;
     findOllama().then((m) => {
@@ -116,19 +123,20 @@ export default function useOracleBrain() {
         return;
       }
       // 한 번 허락했다면 다음 방문에는 묻지 않고 바로 올립니다 (대개 캐시에서 옵니다).
-      if (localStorage.getItem(CONSENT) === '1' && !workerRef.current) enableGemma();
+      const consented = localStorage.getItem(CONSENT);
+      if (consented && !workerRef.current) enableModel(consented);
     });
     return () => { dead = true; };
-  }, [enableGemma]);
+  }, [enableModel]);
 
   // 실패했으면 워커를 버리고 다시 시도할 수 있게 합니다 — 안 그러면 localStorage를
   // 직접 지우는 것 말고는 되살릴 방법이 없습니다.
-  const retryGemma = useCallback(() => {
+  const retryModel = useCallback(() => {
     workerRef.current?.terminate();
     workerRef.current = null;
     pending.current.clear();
-    enableGemma();
-  }, [enableGemma]);
+    enableModel(model.id);
+  }, [enableModel, model]);
 
   useEffect(() => () => workerRef.current?.terminate(), []);
 
@@ -168,10 +176,11 @@ export default function useOracleBrain() {
     engine,
     status,
     progress,
+    model,
     // 아직 아무 모델도 없고, 아직 허락을 안 받은 상태에서만 권합니다.
-    canEnableGemma: engine === 'wiki' && status === 'idle',
-    enableGemma,
-    retryGemma,
+    canEnableModel: engine === 'wiki' && status === 'idle',
+    enableModel,
+    retryModel,
     ask,
   };
 }
