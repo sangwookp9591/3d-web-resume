@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import mountScrollWorld from '@/lib/scrub-engine';
 import { sections, connectors } from '@/lib/worldConfig';
 
 /* 바닐라 엔진이 이 노드 아래를 소유합니다. React는 노드와 서버가 그려 둔 카피만 넘기고
@@ -13,16 +12,22 @@ export default function WorldMount({ children }) {
   useEffect(() => {
     const el = host.current;
     if (!el) return;
-    mountScrollWorld(el, {
-      brand: { name: 'iron · 之印', href: '#top' },
-      hint: '스크롤로 날아갑니다',
-      nav: true,
-      atmosphere: true,
-      diveScroll: 1.4,
-      connScroll: 0.95,
-      sections,
-      connectors,
-    });
+
+    // 엔진(+엔진이 주입하는 CSS 문자열)은 커버 아래에 있는 세계에만 쓰입니다. 정적으로
+    // 물면 첫 화면 번들에 그대로 실리므로 마운트 시점에 받습니다. 재진입 가드는 엔진 안에.
+    import('@/lib/scrub-engine').then(({ default: mountScrollWorld }) => {
+      if (!host.current) return;
+      mountScrollWorld(el, {
+        brand: { name: 'iron · 之印', href: '#top' },
+        hint: '스크롤로 날아갑니다',
+        nav: true,
+        atmosphere: true,
+        diveScroll: 1.4,
+        connScroll: 0.95,
+        sections,
+        connectors,
+      });
+    }).catch((err) => console.error('[world] 스크럽 엔진을 불러오지 못했습니다:', err));
 
     // 엔진의 크롬과 하늘은 position:fixed라서 커버와 마무리 섹션 위에 올라앉습니다.
     // 세계가 화면에 있는 동안에만 보입니다.
