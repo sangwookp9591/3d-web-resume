@@ -12,6 +12,7 @@
   --paper:    #f4f8fc;   /* the ground a card sits on, not the page */
   --ink:      #2e2a6b;
   --blush:    #f5c6d0;
+  --soil:     #5c4433;   /* 픽셀 여정의 흙 — 지면 타일이 없을 때 그 자리를 지킵니다 */
 
   --sky: linear-gradient(180deg,
     var(--sky-high) 0%, var(--sky-mid) 34%, var(--sky-low) 68%, var(--cloud) 100%);
@@ -36,17 +37,6 @@
 
   --gutter: clamp(20px, 5vw, 76px);
   --measure: 62ch;
-}
-
-/* The engine declares its own defaults ON .sw-root, so an inherited :root value
-   never reaches it — the override has to land on the same element. */
-.sw-root {
-  --sw-bg: var(--paper);
-  --sw-ink: var(--ink);
-  --sw-ink-soft: var(--ink-soft);
-  --sw-accent: var(--accent);
-  --sw-font-display: var(--font-body);
-  --sw-font-body: var(--font-body);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -103,78 +93,168 @@ a { color: inherit; }
   background: color-mix(in oklab, var(--cloud) 82%, transparent);
 }
 
-/* ══ Engine containment ═════════════════════════════════════════════════
-   The engine's chrome and sky are position:fixed — they assume they own the
-   page. Fade them out whenever the world isn't the thing being read. */
-#world .sw-sky,
-#world .sw-stage,
-#world .sw-copylayer,
-#world .sw-topbar,
-#world .sw-route,
-#world .sw-scrollbar {
-  transition: opacity 420ms ease;
+/* ══ 픽셀 여정 ══════════════════════════════════════════════════════════
+   무대(그림)는 sticky 한 겹, 씬(글)은 문서 흐름에 있는 다섯 섹션입니다. 글을 화면에
+   붙잡는 것은 position:sticky — JS가 아닙니다. 그래서 엔진 청크가 안 올라와도,
+   모션을 줄여 달라고 해도 다섯 장은 그대로, 순서대로 읽힙니다.
+   레이어 속도와 지평선 위치는 docs/pixel-journey.md의 계약이고, 실제로 미는 쪽은
+   lib/pixel-journey.js입니다. */
+#world { position: relative; }
+
+/* 씬 이동 레일은 fixed라 세계를 벗어나도 화면에 남습니다. 읽고 있는 곳이 세계가 아닐
+   때는 걷어냅니다 — 초점까지(안 보이는 링크에 탭이 걸리지 않게). */
+#world .px-route { transition: opacity 420ms ease, visibility 420ms; }
+#world:not([data-inview]) .px-route { opacity: 0; visibility: hidden; }
+
+/* 무대는 fixed가 아니라 sticky입니다. fixed로 두면 세계가 끝난 뒤에도 화면에 남아
+   다음 섹션(반투명한 구름 판)에 그림이 비칩니다. sticky는 #world 안에서만 붙어 있다가
+   세계와 함께 물러갑니다. 흐름에서 차지하는 한 화면은 여정의 도착 장면입니다 — 무대가
+   먼저 자리를 잡고, 첫 장소의 글이 아래에서 올라옵니다. */
+.px-stage {
+  position: sticky; top: 0;
+  height: 100vh;
+  z-index: 0; overflow: clip; pointer-events: none;
 }
-#world:not([data-inview]) .sw-sky,
-#world:not([data-inview]) .sw-stage,
-#world:not([data-inview]) .sw-copylayer,
-#world:not([data-inview]) .sw-topbar,
-#world:not([data-inview]) .sw-route,
-#world:not([data-inview]) .sw-scrollbar {
-  opacity: 0;
-  pointer-events: none;
+/* 레이어는 무대 밑변에 찍은 0×0 기준점입니다. 그림은 여기에 left/bottom으로 매달고,
+   기준점 자신이 저마다 다른 속도로 밀립니다. */
+.px-layer { position: absolute; left: 0; bottom: 0; width: 0; height: 0; will-change: transform; }
+/* max-width:none — 이 페이지의 반응형 img 규칙(max-width:100%)이 기준점의 폭 0을
+   물려받아 그림을 0으로 접습니다. 픽셀 그림의 크기는 엔진이 정수배로 정합니다. */
+.px-bg { position: absolute; left: 0; bottom: 0; max-width: none; image-rendering: pixelated; }
+.px-sprite { position: absolute; width: 0; height: 0; transform-origin: bottom center; }
+.px-sprite img {
+  position: absolute; bottom: 0; left: 0;
+  max-width: none;
+  transform: translateX(-50%);       /* 기준점을 스프라이트의 밑변 가운데로 */
+  image-rendering: pixelated;
 }
-/* 다섯 장면의 카피는 서버가 미리 그립니다(JS 없이 읽히는 이력서 본문). 화면에서는
-   엔진이 스크롤에 맞춰 띄우는데, 엔진 CSS는 마운트 시점 — 즉 첫 페인트 뒤 — 에야 주입됩니다.
-   그 사이 다섯 장이 문서 흐름에 쌓이면 페이지 높이가 출렁이므로(CLS), 같은 값을 여기에
-   미리 둡니다. 실제 opacity는 엔진이 인라인으로 쓰므로 이 규칙과 다투지 않습니다. */
-#world .sw-copylayer { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
-#world .sw-copy { opacity: 0; }
-
-/* 엔진 청크가 안 올라온 경우. 위 두 줄에 굳어 버리면 다섯 장이 화면에서 사라지므로,
-   영상 없이 글만이라도 읽히게 문서 흐름으로 되돌립니다. */
-#world[data-sw-failed] .sw-copylayer {
-  position: static;
-  display: grid;
-  gap: clamp(28px, 6vh, 64px);
-  padding: clamp(28px, 8vw, 96px) var(--gutter);
-  pointer-events: auto;
+.px-aing img { display: none; }      /* 지금 프레임 하나만 엔진이 켭니다 */
+.px-ground {
+  position: absolute; left: 0; bottom: 0;
+  background-color: var(--soil);     /* 타일이 없으면 흙만 남습니다 */
+  background-repeat: repeat-x;
+  image-rendering: pixelated;
+  will-change: transform;
 }
-#world[data-sw-failed] .sw-copy {
-  position: static;
-  opacity: 1;
-  width: auto;
-  max-width: var(--measure);
-  transform: none;
-}
-
-/* Ai-ng does the "keep scrolling" job now — two prompts is one too many. */
-#world .sw-hint { display: none; }
-
-/* The clips already have the sky painted into them, so the engine's backdrop has
-   to be that same sky — not its own gradient — or the seam at the clip edge shows. */
-#world .sw-sky { background: var(--sky-img, none) center top / cover no-repeat, var(--sky); }
-#world .sw-sky__grad, #world .sw-sky__glow { display: none; }
-
-/* This page's `a { color: inherit }` is unlayered, so it beats the engine's
-   @layer sw rule and painted the navy CTA's label navy-on-navy. Put it back. */
-#world .sw-btn--primary, #world .sw-topcta { color: var(--cloud); }
-
-/* The engine builds its copy scrim out of --sw-bg. Ours is a pale sky, so over a
-   sunlit scene the scrim all but vanished — thicken it without touching the sky. */
-#world .sw-copylayer::before {
+/* 그림 위의 글이 읽히려면 그림 쪽을 눌러야 합니다. 무대 안에 두므로 엔진이 없으면
+   이 막도 없습니다 — 그때 글 뒤에 있는 것은 그냥 페이지의 하늘입니다. */
+.px-scrim {
+  position: absolute; inset: 0 auto 0 0; width: min(58vw, 780px);
+  /* 글이 앉는 위쪽만 누릅니다. 아래까지 그으면 지면 위에 옅은 사각형 자국이 남습니다. */
+  mask-image: linear-gradient(180deg, #000 68%, transparent 100%);
   background: linear-gradient(90deg,
     color-mix(in oklab, var(--cloud) 94%, transparent) 0%,
     color-mix(in oklab, var(--cloud) 82%, transparent) 40%,
     color-mix(in oklab, var(--cloud) 38%, transparent) 68%,
     transparent 100%);
 }
+
+.px-scene { position: relative; z-index: 1; }
+.px-copy {
+  width: min(100%, var(--measure));
+  padding: clamp(28px, 6vh, 56px) var(--gutter);
+}
+/* 여정의 레이아웃. 모션을 줄여 달라고 한 방문자에게는 이 블록이 통째로 없는 것이 곧
+   답입니다 — 스크롤 길이도 sticky도 없이 다섯 장이 세로로 쌓여 그냥 읽힙니다. */
+@media (prefers-reduced-motion: no-preference) {
+  .px-scene { height: calc(var(--px-scroll, 1.4) * 100vh); }
+  /* 마지막 씬만 한 화면 깁니다. 세계의 마지막 한 화면은 무대가 물러나는 구간이라,
+     그 몫을 돌려주지 않으면 다섯째 장소만 서둘러 지나가게 됩니다. 카메라는 이 한 화면을
+     빼고 계산합니다(lib/pixel-journey.js의 measure) — 걷는 속도는 씬마다 그대로. */
+  .px-scene:last-of-type { height: calc((var(--px-scroll, 1.4) + 1) * 100vh); }
+  .px-copy {
+    position: sticky; top: 0;
+    height: 100vh;
+    display: grid; align-content: center;
+    width: min(46vw, 520px);
+    padding-block: 0;
+  }
+  /* 엔진 청크가 안 온 경우. 그림 없는 스크롤 길이 여덟 화면을 접습니다. */
+  #world[data-px-failed] .px-scene { height: auto; }
+  #world[data-px-failed] .px-copy {
+    position: static; height: auto;
+    width: min(100%, var(--measure));
+    padding-block: clamp(28px, 6vh, 56px);
+  }
+}
+
+/* 무대는 애초에 짓지 않지만(lib/pixel-journey.js), 세션 도중 설정을 바꾼 경우까지 덮습니다. */
+@media (prefers-reduced-motion: reduce) { #world .px-stage { display: none; } }
+
+.px-copy__num {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.74rem; letter-spacing: 0.12em; color: var(--ink-faint);
+}
+.px-copy__eyebrow {
+  display: block; margin-top: 16px;
+  font-size: 0.78rem; font-weight: 700; letter-spacing: 0.16em;
+  color: color-mix(in oklab, var(--px-accent, var(--accent)) 62%, var(--ink));
+}
+.px-copy__title {
+  margin: 10px 0 0;
+  font-size: clamp(1.9rem, 4.2vw, 3.2rem); font-weight: 700;
+  line-height: 1.06; letter-spacing: -0.01em;
+}
+.px-copy__body {
+  margin: 16px 0 0; max-width: 40ch;
+  font-size: clamp(1rem, 1.25vw, 1.12rem); line-height: 1.62; color: var(--ink-soft);
+}
+.px-copy__tags { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 0; padding: 0; }
+.px-copy__tags li {
+  font-size: 0.8rem; font-weight: 600;
+  color: color-mix(in oklab, var(--px-accent, var(--accent)) 55%, var(--ink));
+  padding: 7px 13px; border-radius: 999px;
+  background: color-mix(in oklab, #ffffff 62%, transparent);
+  border: 1px solid var(--rim-low);
+}
+.px-copy__cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+.px-btn {
+  padding: 13px 24px; border-radius: 999px;
+  text-decoration: none; font-weight: 620; font-size: 0.92rem;
+  border: 1.5px solid color-mix(in oklab, var(--ink) 25%, transparent);
+  transition: transform 200ms cubic-bezier(.22,.61,.36,1);
+}
+.px-btn--solid { color: var(--cloud); background: var(--ink); border-color: var(--ink); }
+.px-btn:hover { transform: translateY(-2px); }
+.px-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+
+/* 씬 사이 이동. 앵커라서 JS 없이도, 키보드로도 갑니다. */
+.px-route {
+  position: fixed; right: clamp(8px, 2vw, 26px); top: 50%;
+  transform: translateY(-50%); z-index: 3;
+}
+.px-route ol {
+  list-style: none; margin: 0; padding: 8px;
+  display: grid; gap: 4px;
+  border-radius: 999px;
+  background: color-mix(in oklab, #ffffff 55%, transparent);
+  border: 1px solid var(--rim-low);
+  backdrop-filter: blur(8px);
+}
+.px-route a {
+  display: block; padding: 7px 13px; border-radius: 999px;
+  font-size: 0.76rem; font-weight: 600; text-decoration: none; color: var(--ink-faint);
+  transition: color 200ms ease, background 200ms ease;
+}
+.px-route a:hover { color: var(--ink); background: color-mix(in oklab, #ffffff 70%, transparent); }
+.px-route a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 @media (max-width: 860px) {
-  #world .sw-copylayer::before {
+  .px-copy { width: auto; max-width: 560px; align-content: end; padding-bottom: clamp(56px, 12vh, 110px); }
+  .px-scrim {
+    inset: auto 0 0 0; width: auto; height: 62%;
+    mask-image: none;
     background: linear-gradient(0deg,
       color-mix(in oklab, var(--cloud) 95%, transparent) 10%,
       color-mix(in oklab, var(--cloud) 78%, transparent) 50%,
       transparent 100%);
   }
+  /* 좁은 화면에서는 레일을 점으로 줄입니다. 이름은 남아 있어서 스크린리더와 키보드는
+     그대로 다섯 장소를 오갑니다. */
+  .px-route a { width: 12px; height: 12px; padding: 0; background: color-mix(in oklab, var(--accent) 40%, transparent); }
+  .px-route a:hover { background: var(--accent); }
+  .px-route span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .px-route ol { gap: 10px; padding: 10px 7px; }
 }
 
 /* ══ Cover ══════════════════════════════════════════════════════════════ */
