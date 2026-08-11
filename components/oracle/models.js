@@ -29,7 +29,13 @@ export const MODELS = [
 
 export const DEFAULT_MODEL = MODELS[0];
 
-export const byId = (id) => MODELS.find((m) => m.id === id) ?? DEFAULT_MODEL;
+/** 정확히 일치하는 것만. 없으면 null — 부르는 쪽이 결정합니다. */
+export const findById = (id) => MODELS.find((m) => m.id === id) ?? null;
+
+/** 기본값으로 눕히는 판. 모르는 id를 조용히 기본 모델로 바꿔도 되는 자리에서만 씁니다.
+    저장된 동의를 되살리는 경로에서는 쓰면 안 됩니다 — 목록에서 사라진 모델(예: 이번에
+    뺀 Gemma 4)을 허락해 둔 사람에게 묻지도 않고 다른 모델을 내려받게 됩니다. */
+export const byId = (id) => findById(id) ?? DEFAULT_MODEL;
 
 export const sizeLabel = (m) =>
   m.sizeMB >= 1000 ? `${(m.sizeMB / 1000).toFixed(1)}GB` : `${m.sizeMB}MB`;

@@ -52,20 +52,18 @@ export default function useStage() {
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
 
-    // The engine flips .is-active without a scroll event of its own on programmatic
-    // jumps (route dots, nav). Attach after paint — the rail doesn't exist until the
-    // engine has mounted.
+    /* 엔진은 프로그램적 점프(라우트 dot, 내비)에서 스크롤 이벤트 없이 .is-active만 뒤집습니다.
+       예전에는 rAF 한 번 뒤에 `.sw-route`를 찾아 붙였는데, 엔진이 동적 import가 되면서
+       그 레일은 청크를 받아 오기 전까지 존재하지 않습니다 — 콜드 로드에서는 네트워크 왕복이
+       한 프레임을 이길 수 없으므로 옵저버가 영영 안 붙고, 아잉의 설명이 조용히 어긋납니다.
+       #world는 서버가 그려 언제나 있으므로 그쪽을 봅니다. 레일을 기다릴 필요도, 경합도 없습니다. */
     const mo = new MutationObserver(onScroll);
-    const attach = requestAnimationFrame(() => {
-      const rail = document.querySelector('.sw-route');
-      if (rail) mo.observe(rail, { attributes: true, subtree: true, attributeFilter: ['class'] });
-      read();
-    });
+    const world = document.getElementById('world');
+    if (world) mo.observe(world, { attributes: true, subtree: true, attributeFilter: ['class'] });
 
     return () => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
-      cancelAnimationFrame(attach);
       mo.disconnect();
     };
   }, []);

@@ -37,7 +37,10 @@ export default function CharacterKit() {
   const motions = (kit.motion || []).map((m) => ({ name: m.name, file: m.webp }));
   const expr = setItems('expr');
   const pose = setItems('pose');
-  const glb = kit.model3d?.aing ?? (kit.model3d ? Object.values(kit.model3d)[0] : null);
+  // 페이지 안의 뷰어는 미리보기라 lite(205kB)면 충분합니다. 1.22MB 풀 모델은
+  // 킷 다운로드로 가져가는 물건이지, 이력서를 스크롤하다가 받을 물건이 아닙니다.
+  const glb = kit.model3d?.['aing-lite'] ?? kit.model3d?.aing
+    ?? (kit.model3d ? Object.values(kit.model3d)[0] : null);
 
   return (
     <section className="kit" id="aing" data-stage="kit">

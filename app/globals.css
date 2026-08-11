@@ -876,7 +876,11 @@ a { color: inherit; }
 .orc__head {
   display: flex;
   align-items: center;
+  /* 모델 선택지가 하나에서 목록이 되면서 이 줄에 nowrap 칩이 둘 들어옵니다. 좁은 판에서는
+     엔진 라벨(flex:1)이 0으로 눌린 뒤에도 칩이 남아 판 밖으로 삐져나갑니다. 넘치면 접습니다. */
+  flex-wrap: wrap;
   gap: 11px;
+  row-gap: 8px;   /* gap 뒤에 와야 합니다 — 단축 속성이 이 값을 덮습니다 */
   padding: 16px clamp(16px, 2.6vw, 22px);
   border-bottom: 1px solid var(--rim-low);
   opacity: var(--rev-head, 0);

@@ -19,7 +19,7 @@ export default function Live3D({ src }) {
       io.disconnect();
       setState('loading');
       try {
-        // three 빌드는 정확히 하나만 받습니다. `three/webgpu`가 코어 클래스를 재수출하므로
+        // three 빌드는 평소에 하나만 받습니다. `three/webgpu`가 코어 클래스를 재수출하므로
         // 둘 다 import하면 같은 라이브러리를 두 벌(~190kB gzip 낭비) 싣게 됩니다 —
         // 진입점을 먼저 고르고 나서 import합니다.
         const useGPU = !!navigator.gpu;
@@ -40,11 +40,25 @@ export default function Live3D({ src }) {
             console.warn('[aing-3d] WebGPU init failed, falling back to WebGL', err);
           }
         }
-        renderer = renderer || new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        if (!renderer) {
+          // `three/webgpu`는 재수출 목록에 WebGLRenderer가 없습니다(RenderTarget들만 있습니다).
+          // 그래서 여기서 THREE.WebGLRenderer를 부르면 `new undefined(...)`가 되어, navigator.gpu는
+          // 있는데 init이 실패하는 기기 — 드라이버 블록리스트, 플래그로 끈 경우 — 에서 폴백이
+          // 폴백이 아니라 에러였습니다. 그 경로에서만 코어 빌드를 마저 받습니다.
+          const CORE = useGPU ? await import('three') : THREE;
+          if (stop) return;
+          renderer = new CORE.WebGLRenderer({ antialias: true, alpha: true });
+        }
         setApi(apiName);
         renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
         renderer.setSize(w, h);
         el.appendChild(renderer.domElement);
+
+        /* 여기서부터 렌더러는 GPU 컨텍스트를 쥐고 있습니다. 아래에 1.2MB GLB fetch가
+           남아 있으므로, dispose를 그 뒤에서 대입하면 그 사이에 언마운트된 경우
+           컨텍스트와 캔버스가 그대로 샙니다. 브라우저의 컨텍스트 예산은 8~16개라
+           몇 번만 반복해도 이후 렌더러 생성이 실패합니다. 지금 걸어 두고 아래에서 늘립니다. */
+        dispose = () => { renderer.dispose(); renderer.domElement.remove(); };
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 100);
@@ -55,8 +69,9 @@ export default function Live3D({ src }) {
         key.position.set(2, 3, 2);
         scene.add(key);
 
-        // GLB는 meshopt 압축본(54MB 원본 → 200kB)이라 디코더를 등록하지 않으면
-        // 로더가 EXT_meshopt_compression 확장에서 던집니다.
+        // GLB는 meshopt 압축본이라 디코더를 등록하지 않으면 로더가
+        // EXT_meshopt_compression 확장에서 던집니다. (이 뷰어가 받는 건 205kB짜리
+        // aing-lite.glb입니다 — 1.22MB 풀 모델은 킷 다운로드에 들어 있습니다.)
         const { MeshoptDecoder } = await import('three/examples/jsm/libs/meshopt_decoder.module.js');
         const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
         const gltf = await loader.loadAsync(src);

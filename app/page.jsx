@@ -16,8 +16,12 @@ export default function Page() {
       <script
         type="application/ld+json"
         // JSON-LD는 스크립트 태그 안의 텍스트여야 하므로 이 경로만 dangerously가 필요합니다.
-        // 값은 전부 저장소 안의 상수라 사용자 입력이 섞일 여지가 없습니다.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(buildJsonLd()) }}
+        // 값은 전부 저장소 안의 상수라 주입 걱정은 없지만, 파서는 출처를 안 봅니다 —
+        // 본문에 "<" 하나만 들어가도(예: "p95 <200ms") HTML 파서가 스크립트를 일찍 닫아
+        // 구조화 데이터와 그 뒤 마크업이 같이 깨집니다. 그래서 "<"를 이스케이프합니다.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(buildJsonLd()).replace(/</g, '\\u003c'),
+        }}
       />
       <div className="sky" aria-hidden="true" />
       <Cover />

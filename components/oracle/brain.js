@@ -7,7 +7,18 @@
    어느 쪽이든 근거는 같은 위키이고, 질문은 밖으로 나가지 않습니다. */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { retrieve, lookup } from '@/lib/wiki';
-import { DEFAULT_MODEL, byId } from './models.js';
+import { DEFAULT_MODEL, byId, findById } from './models.js';
+
+/* Safari 시크릿 모드나 쿠키를 막은 오리진에서는 localStorage 접근 자체가 던집니다.
+   그러면 '켜기' 핸들러가 워커를 띄우기도 전에 죽어서, 버튼을 눌러도 스피너조차 안 뜹니다. */
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch { /* 기억만 못 할 뿐, 이번 세션은 됩니다 */ } },
+};
+
+// 모델이 죽어도(WebGPU OOM, 탭 스로틀링, 디바이스 로스트) 워커는 아무 메시지도 안 보냅니다.
+// 그대로 두면 busy가 안 풀려 입력창이 새로고침 전까지 잠깁니다.
+const ASK_TIMEOUT_MS = 120_000;
 
 const OLLAMA = 'http://localhost:11434';
 // 한 번 허락했으면 다음부터는 묻지 않습니다. 어느 모델을 허락했는지까지 기억해야
@@ -94,15 +105,20 @@ export default function useOracleBrain() {
       else if (data.type === 'error') { pending.current.get(data.id)?.fail(data.message); pending.current.delete(data.id); }
     };
     // 워커가 아예 안 뜨면(모듈 워커 미지원, 청크 404) onmessage는 영영 안 옵니다.
-    // 잡아두지 않으면 헤더가 '내려받는 중 0%'에 붙박입니다.
-    w.onerror = (e) => { console.error('[oracle] 워커', e.message || e); setStatus('error'); };
+    // 잡아두지 않으면 헤더가 '내려받는 중 0%'에 붙박입니다. 그리고 답을 기다리던 질문들도
+    // 여기서 같이 깨워야 합니다 — 안 그러면 입력창이 잠긴 채 남습니다.
+    w.onerror = (e) => {
+      console.error('[oracle] 워커', e.message || e);
+      setStatus('error');
+      for (const [id, p] of pending.current) { p.fail('워커가 죽었습니다'); pending.current.delete(id); }
+    };
     workerRef.current = w;
     return w;
   }, []);
 
   const enableModel = useCallback((id) => {
     const spec = byId(id);
-    localStorage.setItem(CONSENT, spec.id);
+    store.set(CONSENT, spec.id);
     setModel(spec);
     setStatus('loading');
     setProgress(0);
@@ -122,10 +138,13 @@ export default function useOracleBrain() {
         setStatus('ready');
         return;
       }
-      // 한 번 허락했다면 다음 방문에는 묻지 않고 바로 올립니다 (대개 캐시에서 옵니다).
-      const consented = localStorage.getItem(CONSENT);
-      if (consented && !workerRef.current) enableModel(consented);
-    });
+      /* 한 번 허락했다면 다음 방문에는 묻지 않고 바로 올립니다 (대개 캐시에서 옵니다).
+         단 목록에 정확히 있는 모델일 때만입니다 — 이번처럼 모델을 갈아 끼우고 나면
+         저장된 id가 사라지는데, 그때 기본값으로 눕히면 허락한 적 없는 모델을 묻지도 않고
+         내려받게 됩니다. 워커도 같은 이유로 조용히 고르지 않습니다(llm.worker.js). */
+      const spec = findById(store.get(CONSENT));
+      if (spec && !workerRef.current) enableModel(spec.id);
+    }).catch((err) => console.warn('[oracle] 엔진 탐지 실패:', err));
     return () => { dead = true; };
   }, [enableModel]);
 
@@ -158,10 +177,19 @@ export default function useOracleBrain() {
         const id = String(Date.now());
         let out = '';
         return await new Promise((resolve, reject) => {
+          /* 워커가 죽으면(WebGPU OOM, 탭 스로틀링, 디바이스 로스트) done도 error도 안 옵니다.
+             타임아웃이 없으면 이 프라미스가 영영 안 풀리고, Oracle의 finally가 못 돌아
+             busy가 true로 굳어 입력창이 새로고침 전까지 잠깁니다. Ollama 쪽에는 이미
+             같은 이유로 60초 타임아웃이 걸려 있는데, 정작 방문자에게 나가는 건 이쪽입니다. */
+          const timer = setTimeout(() => {
+            pending.current.delete(id);
+            reject(new Error('모델이 시간 안에 답하지 못했습니다'));
+          }, ASK_TIMEOUT_MS);
+          const settle = (fn) => (arg) => { clearTimeout(timer); pending.current.delete(id); fn(arg); };
           pending.current.set(id, {
             token: (t) => { out += t; onToken(t); },
-            done: () => resolve(out.trim() || quote()),
-            fail: (m) => reject(new Error(m)),
+            done: settle(() => resolve(out.trim() || quote())),
+            fail: settle((m) => reject(new Error(m))),
           });
           workerRef.current.postMessage({ type: 'ask', id, system: SYSTEM(ctx), question });
         });

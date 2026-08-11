@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useOracleBrain from './brain.js';
-import { MODELS, sizeLabel } from './models.js';
+import { DEFAULT_MODEL, sizeLabel } from './models.js';
 
 const PROMPTS = [
   'iron은 어떤 개발자인가요?',
@@ -223,17 +223,20 @@ export default function Oracle() {
               <p className="orc__title">iron wiki</p>
               <p className="orc__engine">{engineLabel(brain)}</p>
             </span>
-            {brain.canEnableModel && MODELS.map((m) => (
+            {/* 버튼은 하나. 한때 MODELS를 통째로 펼쳐 두 개를 뒀는데, 390px 화면에서 헤더가
+                58px에서 106px로 부풀어 판의 절반이 모델 고르기가 됐습니다. 방문자가 여기서
+                할 결정은 "켤까 말까" 하나입니다 — 다른 모델을 기본으로 쓰고 싶으면
+                models.js의 순서를 바꾸면 됩니다. */}
+            {brain.canEnableModel && (
               <button
-                key={m.id}
                 type="button"
                 className="orc__opt"
-                onClick={() => brain.enableModel(m.id)}
+                onClick={() => brain.enableModel(DEFAULT_MODEL.id)}
                 tabIndex={open ? 0 : -1}
               >
-                {m.label} 켜기 <span aria-hidden="true">·</span> {sizeLabel(m)}
+                {DEFAULT_MODEL.label} 켜기 <span aria-hidden="true">·</span> {sizeLabel(DEFAULT_MODEL)}
               </button>
-            ))}
+            )}
             {brain.status === 'error' && (
               <button type="button" className="orc__opt" onClick={brain.retryModel} tabIndex={open ? 0 : -1}>
                 다시 시도

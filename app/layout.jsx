@@ -68,19 +68,37 @@ export default function RootLayout({ children }) {
       <head>
         {/* 본문 한글. 동적 서브셋이라 실제로 쓰인 글자의 woff2만 내려옵니다 — 가변 폰트
             원본(2MB+)을 self-host하는 것보다 이쪽이 빠릅니다.
-            Vite판은 preload+onload로 논블로킹하게 받았지만, 그 트릭은 문자열 onload 핸들러가
-            필요해 RSC에서는 못 씁니다. preconnect된 CDN의 CSS 한 장이고 @font-face에
-            font-display:swap이 들어 있어, 늦어도 시스템 폰트로 먼저 그려집니다. */}
+
+            media="print"로 받으면 렌더를 막지 않습니다. Vite판은 문자열 onload로 media를
+            되돌렸는데 RSC에서는 그 핸들러를 못 쓰므로, body 끝의 인라인 스크립트가 대신
+            뒤집습니다 — 그때는 이미 첫 페인트가 시스템 폰트로 끝나 있고, @font-face의
+            font-display:swap이 나머지를 갈아 끼웁니다. 그냥 stylesheet로 두면 모든 방문자의
+            FCP가 서드파티 CDN 왕복 하나에 묶입니다. */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="" />
         <link
+          id="pretendard"
           rel="stylesheet"
+          media="print"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
+        <noscript>
+          <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+          />
+        </noscript>
       </head>
       {/* #root는 장식이 아닙니다. 오라클이 열리면 판만 남기고 그 뒤 페이지를 통째로
           inert로 재워야 하는데(탭·스크린리더 차단), 판은 portal로 body에 붙으므로
           "판을 뺀 나머지"를 가리킬 노드가 하나 필요합니다. */}
-      <body><div id="root">{children}</div></body>
+      <body>
+        <div id="root">{children}</div>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "document.getElementById('pretendard').media='all'",
+          }}
+        />
+      </body>
     </html>
   );
 }
