@@ -102,9 +102,12 @@ a { color: inherit; }
 #world { position: relative; }
 
 /* 씬 이동 레일은 fixed라 세계를 벗어나도 화면에 남습니다. 읽고 있는 곳이 세계가 아닐
-   때는 걷어냅니다 — 초점까지(안 보이는 링크에 탭이 걸리지 않게). */
+   때는 걷어냅니다 — 초점까지(안 보이는 링크에 탭이 걸리지 않게).
+   단 무대가 실제로 선 뒤에만입니다. `:not([data-inview])`만 보면 JS가 없는 방문자에게는
+   그 속성이 영영 안 붙어 레일이 영구히 숨고, "앵커라서 JS 없이도 간다"는 말이 거짓이 됩니다.
+   기본값은 언제나 JS가 없는 쪽이어야 합니다. */
 #world .px-route { transition: opacity 420ms ease, visibility 420ms; }
-#world:not([data-inview]) .px-route { opacity: 0; visibility: hidden; }
+#world[data-px-up]:not([data-inview]) .px-route { opacity: 0; visibility: hidden; }
 
 /* 무대는 fixed가 아니라 sticky입니다. fixed로 두면 세계가 끝난 뒤에도 화면에 남아
    다음 섹션(반투명한 구름 판)에 그림이 비칩니다. sticky는 #world 안에서만 붙어 있다가
@@ -157,12 +160,16 @@ a { color: inherit; }
 /* 여정의 레이아웃. 모션을 줄여 달라고 한 방문자에게는 이 블록이 통째로 없는 것이 곧
    답입니다 — 스크롤 길이도 sticky도 없이 다섯 장이 세로로 쌓여 그냥 읽힙니다. */
 @media (prefers-reduced-motion: no-preference) {
-  .px-scene { height: calc(var(--px-scroll, 1.4) * 100vh); }
+  /* 스크롤 길이는 그림이 있을 때만 뜻이 있습니다. 그래서 기본은 짧은 쪽이고, 엔진이 무대를
+     실제로 세운 뒤에야(data-px-up) 늘립니다 — 반대로 두면 JS를 끈 방문자, 번들이 404난
+     방문자, 하이드레이션 전에 던진 경우 모두가 그림 없는 여덟 화면의 빈 하늘을 스크롤합니다.
+     엔진이 조용히 빠져나가는 두 갈래(모션 축소, 씬 마크업 불일치)도 이 한 줄이 같이 덮습니다. */
+  #world[data-px-up] .px-scene { height: calc(var(--px-scroll, 1.4) * 100vh); }
   /* 마지막 씬만 한 화면 깁니다. 세계의 마지막 한 화면은 무대가 물러나는 구간이라,
      그 몫을 돌려주지 않으면 다섯째 장소만 서둘러 지나가게 됩니다. 카메라는 이 한 화면을
-     빼고 계산합니다(lib/pixel-journey.js의 measure) — 걷는 속도는 씬마다 그대로. */
-  .px-scene:last-of-type { height: calc((var(--px-scroll, 1.4) + 1) * 100vh); }
-  .px-copy {
+     빼고 계산합니다(lib/pixel-journey.ts의 measure) — 걷는 속도는 씬마다 그대로. */
+  #world[data-px-up] .px-scene:last-of-type { height: calc((var(--px-scroll, 1.4) + 1) * 100vh); }
+  #world[data-px-up] .px-copy {
     position: sticky; top: 0;
     height: 100vh;
     /* safe center: 카피가 화면보다 길어지면 가운데 정렬이 위아래 양쪽으로 넘칩니다.
@@ -173,10 +180,9 @@ a { color: inherit; }
     width: min(46vw, 520px);
     padding-block: 0;
   }
-  /* 엔진 청크가 안 온 경우. 그림 없는 스크롤 길이 여덟 화면을 접습니다. */
-  #world[data-px-failed] .px-scene { height: auto; }
-  #world[data-px-failed] .px-copy {
-    position: static; height: auto;
+  /* 무대가 없을 때의 모습은 위 규칙이 안 붙은 상태 그 자체입니다 — 서버가 그린 다섯 장이
+     문서 흐름에 세로로 쌓여 그냥 읽힙니다. 따로 되돌리는 규칙을 두지 않습니다. */
+  #world:not([data-px-up]) .px-copy {
     width: min(100%, var(--measure));
     padding-block: clamp(28px, 6vh, 56px);
   }

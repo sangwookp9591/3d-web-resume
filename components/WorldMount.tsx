@@ -16,13 +16,12 @@ export default function WorldMount({ children }: { children: React.ReactNode }) 
     // 그대로 실리므로 마운트 시점에 받습니다. 재진입 가드는 엔진 안에.
     /* catch는 import에만 겁니다. 체인 전체에 걸면 마운트 중에 난 예외까지 "청크를 못 받았다"로
        처리되는데, 그때는 이미 반쯤 지어진 무대가 fixed로 붙은 뒤라 처방이 다릅니다. */
+    /* 실패해도 따로 접을 일이 없습니다. 스크롤 길이는 엔진이 무대를 다 세운 뒤에 스스로 다는
+       data-px-up으로만 늘어나므로(globals.css), 청크가 안 오거나 도중에 죽으면 그 속성이
+       없는 상태 — 곧 서버가 그린 다섯 장이 그대로 읽히는 상태 — 로 남습니다. */
     import('@/lib/pixel-journey')
       .catch((err) => {
-        /* 엔진이 안 와도 다섯 장의 글은 이미 문서 흐름에 있습니다 — 붙잡는 것이 JS가 아니라
-           position:sticky니까요. 다만 그림 없는 스크롤 길이가 일곱 화면쯤 남으므로, 그걸
-           접어서 글이 바로 이어지게 합니다. */
         console.error('[world] 픽셀 엔진을 불러오지 못했습니다:', err);
-        el.dataset.pxFailed = '1';
         return null;
       })
       .then((mod) => {
@@ -31,10 +30,10 @@ export default function WorldMount({ children }: { children: React.ReactNode }) 
           mod.default(el);
         } catch (err) {
           // 마운트 도중 죽은 경우. 반쯤 지어진 무대를 남기면 씬마다 엉뚱한 그림이 붙박이므로
-          // 걷어내고, 스크롤 길이도 접습니다. 글은 그대로 읽힙니다.
+          // 걷어냅니다. data-px-up은 layout() 뒤에 달리므로 여기 왔다면 아직 없습니다.
           console.error('[world] 픽셀 무대를 짓지 못했습니다:', err);
           el.querySelector('.px-stage')?.remove();
-          el.dataset.pxFailed = '1';
+          delete el.dataset.pxUp;
         }
       });
 

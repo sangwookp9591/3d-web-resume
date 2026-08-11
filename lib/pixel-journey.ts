@@ -194,6 +194,13 @@ export default function mountPixelJourney(container: HTMLElement) {
   window.addEventListener('orientationchange', layout);
   window.addEventListener('load', measure);
   layout();
+
+  /* 스크롤 길이를 늘리는 것은 이 한 줄입니다(globals.css의 #world[data-px-up]).
+     layout()이 끝난 뒤에 답니다 — 그림이 자리를 잡기 전에 여덟 화면을 열어 두면,
+     엔진이 거기서 던졌을 때 빈 하늘만 남습니다. layout()이 던지면 이 줄에 닿지 않고
+     스크롤 길이는 짧은 채로 남아 다섯 장이 그대로 읽힙니다. */
+  container.dataset.pxUp = '1';
+
   // 첫 프레임은 여기서 잡아 둡니다 — io가 먼저 깨어나도 루프가 두 벌 돌지 않게.
   raf = requestAnimationFrame(frame);
 }
