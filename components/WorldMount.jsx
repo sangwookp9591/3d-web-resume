@@ -32,7 +32,7 @@ export default function WorldMount({ children }) {
         if (!mod || !host.current) return;
         try {
           mod.default(el, {
-            brand: { name: 'iron · 之印', href: '#top' },
+            brand: { name: 'iron', href: '#top' },
             hint: '스크롤로 날아갑니다',
             nav: true,
             atmosphere: true,

@@ -4,11 +4,10 @@
    새 창도, 페이지 이동도 없습니다. 형태는 GPU 파티클 수만 개가 만드는 막이 잡고,
    DOM은 같은 형태로 clip-path만 바뀝니다.
 
-   답은 위키가 하고, 방문자가 허락하면 브라우저 안의 소형 모델로 넘어갑니다(models.js). */
+   답은 위키가 하고, 브라우저 안의 소형 모델이 올라오면 그쪽으로 넘어갑니다(brain.js). */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useOracleBrain from './brain.js';
-import { DEFAULT_MODEL, sizeLabel } from './models.js';
 
 const PROMPTS = [
   'iron은 어떤 개발자인가요?',
@@ -223,20 +222,8 @@ export default function Oracle() {
               <p className="orc__title">iron wiki</p>
               <p className="orc__engine">{engineLabel(brain)}</p>
             </span>
-            {/* 버튼은 하나. 한때 MODELS를 통째로 펼쳐 두 개를 뒀는데, 390px 화면에서 헤더가
-                58px에서 106px로 부풀어 판의 절반이 모델 고르기가 됐습니다. 방문자가 여기서
-                할 결정은 "켤까 말까" 하나입니다 — 다른 모델을 기본으로 쓰고 싶으면
-                models.js의 순서를 바꾸면 됩니다. */}
-            {brain.canEnableModel && (
-              <button
-                type="button"
-                className="orc__opt"
-                onClick={() => brain.enableModel(DEFAULT_MODEL.id)}
-                tabIndex={open ? 0 : -1}
-              >
-                {DEFAULT_MODEL.label} 켜기 <span aria-hidden="true">·</span> {sizeLabel(DEFAULT_MODEL)}
-              </button>
-            )}
+            {/* 헤더에 남는 버튼은 실패했을 때의 재시도 하나뿐입니다. 390px 화면에서 버튼을
+                하나 더 두면 헤더가 58px에서 106px로 부풀어 판의 절반을 먹습니다. */}
             {brain.status === 'error' && (
               <button type="button" className="orc__opt" onClick={brain.retryModel} tabIndex={open ? 0 : -1}>
                 다시 시도

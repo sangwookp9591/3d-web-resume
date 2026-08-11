@@ -11,8 +11,6 @@ import Oracle from './oracle/Oracle';
 export default function Cover() {
   return (
     <CoverParallax>
-      <p className="cover__seal" aria-hidden="true">之印</p>
-
       <div className="cover__stage">
         <div className="plate plate--name">
           <p className="plate__kicker">박상욱 · iron</p>

@@ -226,24 +226,6 @@ a { color: inherit; }
 /* 큐는 판을 가르는 세 행에 끼지 않습니다 — 끼면 검색창 자리가 그만큼 위로 밀립니다. */
 .cue { position: absolute; bottom: 0; left: 0; }
 
-/* A seal stamped in the corner of the sky, not a headline. Physical top/right on
-   purpose: with writing-mode vertical-rl the logical inset properties remap onto
-   the element's own axes and would park it bottom-right. */
-.cover__seal {
-  position: absolute;
-  top: clamp(18px, 4vh, 46px);
-  right: var(--gutter);
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 4.2vw, 3.4rem);
-  line-height: 1;
-  color: color-mix(in oklab, var(--ink) 22%, transparent);
-  writing-mode: vertical-rl;
-  letter-spacing: 0.06em;
-  pointer-events: none;
-  user-select: none;
-}
-
 .plate {
   position: relative;
   border-radius: 26px;
@@ -562,7 +544,6 @@ a { color: inherit; }
 @media (max-width: 860px) {
   .repo { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .repo__meter { height: 34px; }
-  .cover__seal { font-size: clamp(2.6rem, 15vw, 4.6rem); inset-block-start: -14px; }
 }
 @media (max-width: 620px) {
   /* 커버 패딩은 상하 대칭을 지킵니다 — 아래만 키우면 검색창 자리가 그만큼 위로

@@ -1,29 +1,19 @@
 /* 답을 만드는 쪽. 세 갈래가 있고 위에서부터 되는 것을 씁니다.
 
    1) ollama — 이 컴퓨터에서 Ollama가 돌고 있으면 그쪽에 물어봅니다 (내려받을 게 없음)
-   2) local  — 브라우저 안에서 WebGPU로 소형 모델을 돌립니다 (최초 1회, 기본 570MB)
-   3) wiki   — 모델이 없어도 위키 조각을 그대로 인용해 답합니다
+   2) local  — 브라우저 안에서 WebGPU로 소형 모델을 돌립니다 (진입 즉시 자동, 최초 1회 570MB)
+   3) wiki   — 모델이 없거나 WebGPU가 없으면 위키 조각을 그대로 인용해 답합니다
 
    어느 쪽이든 근거는 같은 위키이고, 질문은 밖으로 나가지 않습니다. */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { retrieve, lookup } from '@/lib/wiki';
-import { DEFAULT_MODEL, byId, findById } from './models.js';
-
-/* Safari 시크릿 모드나 쿠키를 막은 오리진에서는 localStorage 접근 자체가 던집니다.
-   그러면 '켜기' 핸들러가 워커를 띄우기도 전에 죽어서, 버튼을 눌러도 스피너조차 안 뜹니다. */
-const store = {
-  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch { /* 기억만 못 할 뿐, 이번 세션은 됩니다 */ } },
-};
+import { DEFAULT_MODEL, byId } from './models.js';
 
 // 모델이 죽어도(WebGPU OOM, 탭 스로틀링, 디바이스 로스트) 워커는 아무 메시지도 안 보냅니다.
 // 그대로 두면 busy가 안 풀려 입력창이 새로고침 전까지 잠깁니다.
 const ASK_TIMEOUT_MS = 120_000;
 
 const OLLAMA = 'http://localhost:11434';
-// 한 번 허락했으면 다음부터는 묻지 않습니다. 어느 모델을 허락했는지까지 기억해야
-// 재방문자가 고르지도 않은 모델을 받는 일이 없습니다.
-const CONSENT = 'oracle:model';
 
 const SYSTEM = (ctx) => `너는 개발자 박상욱(iron, 아이언, 상욱)의 이력 위키를 대신 읽어 주는 안내자다.
 아래 <자료>에 적힌 것만 근거로 한국어로 답한다. 3문장 이내로 짧고 담백하게.
@@ -118,7 +108,6 @@ export default function useOracleBrain() {
 
   const enableModel = useCallback((id) => {
     const spec = byId(id);
-    store.set(CONSENT, spec.id);
     setModel(spec);
     setStatus('loading');
     setProgress(0);
@@ -138,12 +127,12 @@ export default function useOracleBrain() {
         setStatus('ready');
         return;
       }
-      /* 한 번 허락했다면 다음 방문에는 묻지 않고 바로 올립니다 (대개 캐시에서 옵니다).
-         단 목록에 정확히 있는 모델일 때만입니다 — 이번처럼 모델을 갈아 끼우고 나면
-         저장된 id가 사라지는데, 그때 기본값으로 눕히면 허락한 적 없는 모델을 묻지도 않고
-         내려받게 됩니다. 워커도 같은 이유로 조용히 고르지 않습니다(llm.worker.js). */
-      const spec = findById(store.get(CONSENT));
-      if (spec && !workerRef.current) enableModel(spec.id);
+      /* Ollama가 없으면 브라우저 모델을 묻지 않고 바로 내려받습니다. 두 번째 방문부터는
+         브라우저 캐시에서 올라옵니다.
+         WebGPU가 없는 브라우저는 걸러냅니다 — 세션은 파일을 다 받은 뒤에야 만들어지므로,
+         가드가 없으면 실행할 수도 없는 모델 570MB를 끝까지 받고 나서 죽습니다. */
+      if (!navigator.gpu || workerRef.current) return;
+      enableModel(DEFAULT_MODEL.id);
     }).catch((err) => console.warn('[oracle] 엔진 탐지 실패:', err));
     return () => { dead = true; };
   }, [enableModel]);
@@ -205,9 +194,6 @@ export default function useOracleBrain() {
     status,
     progress,
     model,
-    // 아직 아무 모델도 없고, 아직 허락을 안 받은 상태에서만 권합니다.
-    canEnableModel: engine === 'wiki' && status === 'idle',
-    enableModel,
     retryModel,
     ask,
   };
