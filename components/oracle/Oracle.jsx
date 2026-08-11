@@ -64,7 +64,12 @@ export default function Oracle() {
 
   /* 파티클 장은 한 번만 붙입니다. 검색창이 이미 그 장의 일부이기 때문에
      WebGPU 초기화는 페이지 진입 직후, 첫 상호작용 전에 끝나 있어야 합니다. */
+  /* mounted를 기다립니다. 판은 portal이라 mounted 전에는 canvas도 panel도 DOM에 없고,
+     그때 morph 청크가 먼저 도착하면 두 ref가 null이라 조용히 빠져나갑니다 — broken도
+     안 세우고 deps가 []라 재시도도 없으니, 정확히 이 플래그가 막으려던 "눌러도 아무 일도
+     안 일어나는 검색창"이 됩니다. 지금은 청크 왕복 덕에 우연히 안 걸릴 뿐입니다. */
   useEffect(() => {
+    if (!mounted) return;
     let dead = false;
     let field;
     import('./morph.js').then(async ({ default: mount }) => {
@@ -80,7 +85,7 @@ export default function Oracle() {
       setBroken(true);
     });
     return () => { dead = true; field?.destroy(); fieldRef.current = null; };
-  }, []);
+  }, [mounted]);
 
   useEffect(() => {
     if (open) return;

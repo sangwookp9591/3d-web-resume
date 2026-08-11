@@ -20,6 +20,9 @@ export function proxy(request) {
   return res;
 }
 
-export const proxyConfig = {
+/* 파일명과 함수명은 Next 16에서 proxy로 바뀌었지만 설정 export는 여전히 `config`입니다.
+   `proxyConfig`로 두면 조용히 무시되어 matcher가 사라지고, 프록시가 모든 요청에 걸립니다 —
+   /llms.txt를 Accept: text/markdown으로 부르면 이력서 전문이 돌아오는 식으로. */
+export const config = {
   matcher: ['/'],
 };

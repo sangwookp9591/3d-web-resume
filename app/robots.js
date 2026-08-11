@@ -18,6 +18,7 @@ export default function robots() {
       { userAgent: AI_AGENTS, allow: '/' },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
-    host: SITE_URL,
+    // Host 지시어는 스킴 없는 호스트명입니다 — URL을 통째로 넣으면 무시됩니다.
+    host: new URL(SITE_URL).host,
   };
 }

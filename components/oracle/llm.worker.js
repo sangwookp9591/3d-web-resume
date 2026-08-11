@@ -46,7 +46,10 @@ function load(id) {
 }
 
 async function ask({ id, system, question }) {
-  await load();
+  // load 없이 ask가 오면 byId(undefined)가 기본 모델을 집어, 방문자가 허락하지도 않은
+  // 모델을 받고 spec(=enable_thinking)도 그 세션과 어긋납니다. 조용히 고르지 않습니다.
+  if (!loading) throw new Error('모델이 아직 올라오지 않았습니다');
+  await loading;
   const text = tokenizer.apply_chat_template(
     [
       { role: 'system', content: system },

@@ -462,7 +462,10 @@ a { color: inherit; }
   align-items: center;
   border-radius: 999px;
   background: color-mix(in oklab, var(--ink) 7%, transparent);
-  overflow: hidden;
+  /* overflow:hidden 금지. 그건 이 상자를 스크롤 컨테이너로 만들고, 그러면 아래 fill의
+     view() 타임라인이 뷰포트가 아니라 이 상자에 묶입니다. 이 상자는 스크롤될 일이 없으니
+     진행률이 1에 붙박이고, 막대는 스크롤과 무관하게 항상 가득 찬 채로 그려집니다.
+     fill 자신이 border-radius:999px이고 폭이 100%를 넘지 않으므로 클리핑도 불필요합니다. */
 }
 .repo__fill {
   position: absolute;

@@ -13,9 +13,14 @@ export default function Guide() {
   const line = SCRIPT[stage] ?? SCRIPT.cover;
   const [open, setOpen] = useState(true);
 
-  // 애니메이션 WebP는 멈출 수 없으므로, 모션을 줄여 달라고 한 방문자에게는 요청하지도
-  // 않은 루프 대신 정지 포즈를 보여줍니다.
-  const [still, setStill] = useState(false);
+  /* 애니메이션 WebP는 멈출 수 없으므로, 모션을 줄여 달라고 한 방문자에게는 요청하지도
+     않은 루프 대신 정지 포즈를 보여줍니다.
+
+     서버에는 matchMedia가 없어 한쪽을 골라야 하는데, 기본을 "정지"로 둡니다. 반대로 두면
+     reduced-motion 사용자가 하이드레이션 전에 루프를 내려받고 보게 됩니다 — 약속을 첫
+     페인트에서 이미 어기는 셈입니다. 정지 포즈는 원래 루프가 디코딩되는 동안의 포스터라,
+     나머지 방문자에게는 한 박자 뒤 모션으로 바뀔 뿐 손해가 없습니다. */
+  const [still, setStill] = useState(true);
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     const on = () => setStill(mq.matches);
