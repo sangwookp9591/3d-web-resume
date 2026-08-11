@@ -1,11 +1,8 @@
+'use client';
+
 import { useEffect, useRef, useState } from 'react';
 
-/* The mascot is a real asset, not page decoration — so the page shows the whole kit and
-   hands it over: alpha cutouts for the web, a uniform-grid atlas any 2D engine can slice,
-   PNG sequences, and a GLB. Everything is read from public/mascot/aing-kit.json, so
-   regenerating the kit updates this section without touching the component. */
-
-function Live3D({ src }) {
+export default function Live3D({ src }) {
   const host = useRef(null);
   const [state, setState] = useState('idle');
   const [api, setApi] = useState('');
@@ -16,16 +13,15 @@ function Live3D({ src }) {
     let stop = false;
     let dispose = () => {};
 
-    // three is ~150kB gzip — never in the initial bundle, only once this section
-    // is actually scrolled to.
+    // three는 ~150kB gzip — 초기 번들에 절대 넣지 않고, 이 섹션까지 실제로 스크롤했을 때만 받습니다.
     const io = new IntersectionObserver(async ([e]) => {
       if (!e.isIntersecting || stop) return;
       io.disconnect();
       setState('loading');
       try {
-        // Exactly ONE three build is fetched. `three/webgpu` already re-exports the core
-        // classes, so importing it *and* `three` would ship two copies of the same
-        // library (~190kB gzip wasted) — pick the entry point first, then import.
+        // three 빌드는 정확히 하나만 받습니다. `three/webgpu`가 코어 클래스를 재수출하므로
+        // 둘 다 import하면 같은 라이브러리를 두 벌(~190kB gzip 낭비) 싣게 됩니다 —
+        // 진입점을 먼저 고르고 나서 import합니다.
         const useGPU = !!navigator.gpu;
         const THREE = useGPU ? await import('three/webgpu') : await import('three');
         const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
@@ -40,8 +36,8 @@ function Live3D({ src }) {
             await r.init();
             renderer = r;
             apiName = 'WebGPU';
-          } catch (e) {
-            console.warn('[aing-3d] WebGPU init failed, falling back to WebGL', e);
+          } catch (err) {
+            console.warn('[aing-3d] WebGPU init failed, falling back to WebGL', err);
           }
         }
         renderer = renderer || new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -59,25 +55,24 @@ function Live3D({ src }) {
         key.position.set(2, 3, 2);
         scene.add(key);
 
-        // The GLB ships meshopt-compressed (54 MB raw → 200 kB), so the decoder has to
-        // be registered or the loader throws on the EXT_meshopt_compression extension.
+        // GLB는 meshopt 압축본(54MB 원본 → 200kB)이라 디코더를 등록하지 않으면
+        // 로더가 EXT_meshopt_compression 확장에서 던집니다.
         const { MeshoptDecoder } = await import('three/examples/jsm/libs/meshopt_decoder.module.js');
         const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
         const gltf = await loader.loadAsync(src);
         if (stop) return;
         const model = gltf.scene;
 
-        // The exporter's scale, origin and facing all vary per generation, so frame the
-        // model from its own bounds rather than guessing constants: centre it on the
-        // origin, then pull the camera back to the distance that fits its bounding
-        // sphere in the current field of view.
+        // 익스포터의 스케일·원점·방향이 생성마다 달라지므로 상수를 찍지 않고 모델 자신의
+        // 바운드로 프레이밍합니다: 원점에 맞춘 뒤, 현재 화각에서 바운딩 스피어가 들어오는
+        // 거리까지 카메라를 물립니다.
         const box = new THREE.Box3().setFromObject(model);
         const centre = box.getCenter(new THREE.Vector3());
         model.position.sub(centre);
 
         const pivot = new THREE.Group();
         pivot.add(model);
-        pivot.rotation.y = Math.PI;      // tripo exports facing away from the camera
+        pivot.rotation.y = Math.PI;      // tripo 익스포트는 카메라 반대편을 봅니다
         scene.add(pivot);
 
         const sphere = box.getBoundingSphere(new THREE.Sphere());
@@ -144,78 +139,5 @@ function Live3D({ src }) {
             : 'GLB 불러오는 중…'}
       </p>
     </div>
-  );
-}
-
-function Row({ title, note, items, base, big }) {
-  if (!items?.length) return null;
-  return (
-    <div className="kit__row">
-      <div className="kit__rowhead">
-        <h3 className="kit__rowtitle">{title}</h3>
-        <p className="kit__rownote">{note}</p>
-      </div>
-      <ul className={`kit__grid${big ? ' kit__grid--big' : ''}`}>
-        {items.map((it) => (
-          <li className="kit__cell" key={it.name}>
-            <img src={`${base}${it.file}`} alt={it.name} loading="lazy" />
-            <span className="kit__name">{it.name}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-export default function CharacterKit() {
-  const [kit, setKit] = useState(null);
-  const base = `${import.meta.env.BASE_URL}mascot/`;
-
-  useEffect(() => {
-    fetch(`${base}aing-kit.json`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then(setKit)
-      .catch((e) => console.error('[aing-kit]', e));
-  }, [base]);
-
-  if (!kit) return null;
-
-  const toItems = (setname) =>
-    (kit.sets?.[setname]?.frames || []).map((n) => ({ name: n, file: `${setname}/${n}.webp` }));
-  const motions = (kit.motion || []).map((m) => ({ name: m.name, file: m.webp }));
-  const glb = kit.model3d?.aing ?? (kit.model3d ? Object.values(kit.model3d)[0] : null);
-
-  return (
-    <section className="kit" id="aing" data-stage="kit">
-      <div className="kit__head">
-        <p className="eyebrow">Ai-ng · 캐릭터 킷</p>
-        <h2 className="kit__title">여기까지 안내한 고양이는, 쓸 수 있는 에셋입니다</h2>
-        <p className="kit__lead">
-          표정과 액션을 시트로 뽑고, 모션은 알파 애니메이션으로, 형태는 3D 모델로 만들었습니다.
-          웹은 물론 three.js·WebGPU·Unity에서 바로 쓸 수 있게 아틀라스와 매니페스트를 함께 냅니다.
-        </p>
-      </div>
-
-      {glb && <Live3D src={`${base}${glb}`} />}
-
-      <Row title="모션" note="알파 애니메이션 WebP · PNG 시퀀스 동봉" items={motions} base={base} big />
-      <Row title="표정" note={`${toItems('expr').length}종 · 알파 컷아웃`} items={toItems('expr')} base={base} />
-      <Row title="액션" note={`${toItems('pose').length}종 · 알파 컷아웃`} items={toItems('pose')} base={base} />
-
-      {kit.download && (
-        <a className="kit__dl" href={`${base}${kit.download}`} download>
-          킷 내려받기 · 표정·액션·모션·아틀라스·GLB
-        </a>
-      )}
-
-      <ul className="kit__use">
-        {Object.entries(kit.usage || {}).map(([k, v]) => (
-          <li className="kit__usecell" key={k}>
-            <code>{k}</code>
-            <span>{v}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }

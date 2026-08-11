@@ -3,3 +3,6 @@ dist
 .world
 .remember
 .playwright-mcp
+
+.next
+out

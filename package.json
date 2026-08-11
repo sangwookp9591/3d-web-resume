@@ -1,23 +1,22 @@
 {
   "name": "iron-3d-web-profile",
   "private": true,
-  "version": "1.1.0",
-  "type": "module",
+  "version": "2.0.0",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "check": "node src/oracle/wiki.check.mjs"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "check": "node lib/wiki.check.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
+    "next": "16.3.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "three": "^0.182.0"
   },
   "devDependencies": {
-    "@gltf-transform/cli": "^4.4.2",
-    "@vitejs/plugin-react": "^5.0.4",
-    "vite": "^7.1.14"
-  }
+    "@gltf-transform/cli": "^4.4.2"
+  },
+  "type": "module"
 }

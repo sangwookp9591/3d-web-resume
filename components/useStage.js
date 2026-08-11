@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { WORLD_STAGES } from './guideScript.js';
+import { WORLD_STAGES } from '@/lib/guideScript';
 
 /* Which part of the page is the reader actually looking at?
    Two signals, because the world doesn't scroll like the rest of the page:

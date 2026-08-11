@@ -1,3 +1,5 @@
+'use client';
+
 /* 화면 한가운데 떠 있는 유리 검색창. 누르면 그 자리에서 그대로 자라 채팅창이 됩니다 —
    새 창도, 페이지 이동도 없습니다. 형태는 GPU 파티클 수만 개가 만드는 막이 잡고,
    DOM은 같은 형태로 clip-path만 바뀝니다.
@@ -46,7 +48,10 @@ export default function Oracle() {
   const [busy, setBusy] = useState(false);
   const [fieldUp, setFieldUp] = useState(false);
   const [broken, setBroken] = useState(false); // 파티클 장을 못 불러온 경우
+  const [mounted, setMounted] = useState(false);
   const brain = useOracleBrain();
+
+  useEffect(() => setMounted(true), []);
 
   const canvasRef = useRef(null);
   const panelRef = useRef(null);
@@ -259,7 +264,9 @@ export default function Oracle() {
     <>
       {/* 판은 화면 중앙에 fixed로 떠 있으므로, 커버 레이아웃에는 그만한 자리만 남깁니다. */}
       <div className="oracle-slot" aria-hidden="true" />
-      {createPortal(panel, document.body)}
+      {/* 서버에는 document가 없으므로 마운트 뒤에 붙입니다. 판 안에는 크롤러가 읽어야 할
+          글이 없고(WebGPU 검색창), 자리는 위 oracle-slot이 미리 잡아 둡니다. */}
+      {mounted && createPortal(panel, document.body)}
     </>
   );
 }

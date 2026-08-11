@@ -6,7 +6,7 @@
 
    어느 쪽이든 근거는 같은 위키이고, 질문은 밖으로 나가지 않습니다. */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { retrieve, lookup } from './wiki.js';
+import { retrieve, lookup } from '@/lib/wiki';
 
 const OLLAMA = 'http://localhost:11434';
 const CONSENT = 'oracle:gemma-ok';   // 3.4GB를 한 번 허락했으면 다음부터는 묻지 않습니다
