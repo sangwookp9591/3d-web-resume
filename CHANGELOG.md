@@ -8,6 +8,76 @@
 
 ---
 
+## [2.0.0] — 2026-08-11
+
+Vite SPA를 **Next.js 16.3 App Router**로 옮기고, AI 에이전트가 JS 없이 읽을 수 있는
+표면을 만든 릴리스.
+
+계기는 성능이 아니라 **구멍**이었습니다. 이 사이트에서 가장 할 말이 많은 부분 — 다섯 섬의
+제목·본문·태그 — 은 스크럽 엔진이 런타임 `innerHTML`로 만들고 있었고, 캐릭터 킷은
+하이드레이션 뒤 `fetch`로 그렸습니다. 즉 **JS를 돌리지 않는 크롤러에게 이 이력서는 거의
+비어 있었습니다.** 이관의 본론은 그 글을 서버로 옮긴 것입니다.
+
+### 추가
+
+- **AEO 응답 레이어**
+  - `Accept: text/markdown`으로 홈을 요청하면 같은 내용의 Clean Markdown(~16KB)을 냅니다.
+    리다이렉트가 아니라 **rewrite**라서 URL이 그대로입니다 — 에이전트가 인용하는 주소와
+    사람이 여는 주소가 같아야 하기 때문입니다. `Vary: Accept`도 같이 냅니다. (`proxy.js`)
+  - `/iron.md` · `/llms.txt` · `/llms-full.txt` — 전부 `lib/markdown.js`가 페이지와
+    **같은 상수**에서 생성합니다. 따로 관리하는 사본이 없으니 화면과 어긋날 수 없습니다.
+  - `robots.txt`에 GPTBot·ClaudeBot·PerplexityBot 등 **16종을 이름으로** 허용했습니다.
+    와일드카드 `Allow`만 두면 그것을 "학습 거부 안 함"으로만 읽고 색인은 건너뛰는 봇이 있습니다.
+- **JSON-LD** `@graph` — `ProfilePage` · `Person` · `ItemList`(기여 사례/저장소) · `FAQPage`.
+  규칙 하나를 지켰습니다: **화면에 실제로 보이는 글만 올린다.** 위키 16조각은 화면에
+  없으므로 FAQ로 올리지 않고 마크다운 레이어로만 냅니다. 보이지 않는 답을 구조화 데이터에
+  넣는 건 그냥 스팸입니다.
+- **Metadata API** — `metadataBase`, canonical, OpenGraph(profile), Twitter,
+  `alternates.types`로 마크다운 표면 광고. `robots.js` / `sitemap.js`로 생성.
+- `lib/site.js` — 사이트 URL을 하드코딩하지 않습니다. `NEXT_PUBLIC_SITE_URL` →
+  Vercel의 `VERCEL_PROJECT_PRODUCTION_URL` 순으로 잡습니다. 프리뷰 배포가 자기를
+  정본이라 주장하면 크롤러가 그쪽을 인덱싱합니다.
+
+### 변경
+
+- **월드 카피를 서버가 렌더합니다.** 엔진은 `.sw-copylayer`가 이미 있으면 **그 마크업을
+  집어 씁니다**(`lib/scrub-engine.js`). 없으면 예전처럼 만듭니다 — DOM에 두 벌이
+  생기지 않고, 엔진을 다른 데서 단독으로 쓰던 방식도 그대로 삽니다.
+- **캐릭터 킷이 서버 컴포넌트가 됐습니다.** `aing-kit.json`은 저장소 안의 정적 파일이므로
+  빌드 타임에 import합니다. `fetch` 폭포와 "아직 안 온 상태"가 통째로 없어졌습니다.
+- **Footprint의 IntersectionObserver를 CSS `animation-timeline: view()`로 대체.**
+  막대 하나 차오르게 하려고 섹션 전체가 클라이언트 컴포넌트였습니다. 지원하지 않는
+  브라우저는 막대가 곧바로 제 길이로 찹니다 — **수치는 언제나 정확합니다.**
+- **오라클 모델: Gemma 4 E2B 3.4GB → Qwen3 0.6B 570MB** (q4f16 실측, 6배).
+  이 모델이 하는 일은 지식을 꺼내는 게 아니라 *검색된 위키 문단을 3문장으로 다듬는 것*이라,
+  파라미터보다 기다림이 먼저 체감됩니다. 방문자는 570MB / 1.4GB 중에 고릅니다.
+  Gemma 4는 멀티모달(`AutoProcessor`)이라 뺐습니다 — 텍스트 한 갈래를 위해 로더를
+  두 벌 지고 갈 이유가 없습니다. 동의는 모델 id로 저장해 재방문자가 고르지도 않은
+  모델을 받지 않습니다. (`components/oracle/models.js`)
+- 라우트 dot의 `aria-label`을 엔진이 직접 답니다. 마운트 뒤 밖에서 덧칠하던 코드 삭제.
+- `src/` → `app/` · `components/` · `lib/`. 모든 이동은 `git mv`라 이력이 이어집니다.
+
+### 삭제
+
+- `index.html` · `vite.config.js` · `src/main.jsx` — `main.jsx`의 sky URL 절대화 해킹은
+  base가 `/`가 되면서 CSS 한 줄(`--sky-img`)로 충분해졌습니다. 첫 페인트 전 스크립트가 사라집니다.
+- `public/llms.txt` · `robots.txt` · `sitemap.xml` — 손으로 관리하던 사본. 이제 생성합니다.
+  (`public/`의 정적 파일은 같은 이름의 라우트를 가리므로 지우지 않으면 새 것이 안 나옵니다.)
+- `public/ai-ng-favicon.png` **1.5MB** — 1024px 원본이 파비콘으로 그대로 들어가 있었습니다.
+  `app/icon.png` 192px **52KB**로 교체.
+
+### 알려진 비용
+
+- **초기 번들 74KB → 185KB gzip.** App Router 런타임의 값입니다. 스크럽 엔진·파티클 막·
+  three.js·모델은 전부 필요할 때만 받지만, 런타임 자체는 줄일 수 없습니다.
+  에이전트에게는 초기 JS가 0이므로 이 거래는 그쪽에서 이득이고, 사람 쪽에서는
+  LCP를 하늘 이미지와 폰트가 지배하므로 체감이 크지 않습니다.
+- Lighthouse 수치는 Vercel 배포 후 재측정해야 의미가 있어 README에서 내렸습니다.
+- Pretendard 동적 서브셋을 논블로킹으로 받던 `preload`+`onload` 트릭은 문자열 이벤트
+  핸들러가 필요해 RSC에서 못 씁니다. preconnect된 CDN의 CSS 한 장으로 되돌렸습니다.
+
+---
+
 ## [1.1.0] — 2026-08-10
 
 검색창 하나로 이력을 물어볼 수 있게 만든 릴리스. 화면 한가운데의 유리판이

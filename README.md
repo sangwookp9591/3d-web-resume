@@ -10,11 +10,11 @@
 
 <br />
 
-![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16.3%20App%20Router-000000?logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![three.js](https://img.shields.io/badge/three.js-WebGPU-000000?logo=threedotjs&logoColor=white)
-![Lighthouse](https://img.shields.io/badge/Lighthouse-100%20×%204-0CCE6B?logo=lighthouse&logoColor=white)
-![Bundle](https://img.shields.io/badge/초기%20번들-74KB%20gzip-blue)
+![AEO](https://img.shields.io/badge/AEO-JSON--LD%20·%20llms.txt%20·%20text%2Fmarkdown-7C9EE8)
+![Bundle](https://img.shields.io/badge/초기%20번들-185KB%20gzip-blue)
 
 <br />
 
@@ -67,12 +67,17 @@
 | 순위 | 엔진 | 조건 |
 |:-:|---|---|
 | 1 | **Ollama** | 이 컴퓨터에서 돌고 있을 때 (내려받을 것 없음, localhost에서만 탐지) |
-| 2 | **Gemma 4** | `onnx-community/gemma-4-E2B-it-ONNX` q4f16을 WebGPU로. 최초 1회 3.4GB, **버튼을 눌러야만** 받습니다 |
+| 2 | **브라우저 모델** | Qwen3 0.6B q4f16 **570MB**(기본) 또는 1.7B **1.4GB**를 WebGPU로. **버튼을 눌러야만** 받습니다 |
 | 3 | **위키** | 모델이 없어도 조각을 그대로 인용해 답합니다 |
+
+모델이 하는 일은 *지식을 꺼내는 것*이 아니라 **검색된 위키 문단을 3문장으로 다듬는 것**입니다.
+그래서 파라미터 수보다 기다리는 시간이 먼저 체감됩니다 — 기본값은 3.4GB Gemma 4 E2B가 아니라
+570MB Qwen3 0.6B입니다(q4f16 실측: 디코더 1.86GB + 임베딩 1.76GB vs 570MB, **6배**).
+모델·용량·dtype은 `components/oracle/models.js` 한 곳에 있고 워커와 UI가 같은 표를 봅니다.
 
 ### 무엇을 근거로 답하나
 
-근거는 셋 다 같은 위키(`src/oracle/wiki.js`) **16개 조각**입니다. PAR 이력서의
+근거는 셋 다 같은 위키(`lib/wiki.js`) **16개 조각**입니다. PAR 이력서의
 Problem·Analyze·Action·Result를 옮겨서, 무엇을 했는지뿐 아니라 **어떤 선택지를 왜 골랐는지**까지 답합니다.
 
 | 갈래 | 조각 |
@@ -168,15 +173,39 @@ new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
 
 ---
 
+## AEO — 에이전트가 JS 없이 읽는 이력서
+
+이 사이트에서 가장 할 말이 많은 부분은 다섯 섬의 카피입니다. 그런데 그 글은 스크럽 엔진이
+런타임 `innerHTML`로 만들고 있었습니다 — **JS를 돌리지 않는 크롤러에게는 페이지가 통째로
+비어 있었다**는 뜻입니다. Next 이관의 본론이 이걸 서버로 옮긴 것입니다.
+
+| 표면 | 무엇을 내나 |
+|---|---|
+| **HTML** | 다섯 장면의 제목·본문·태그, 저장소 수치, 원칙, 킷 그리드 전부 서버 렌더. 엔진은 그 마크업을 **재사용**하므로 DOM에 두 벌이 생기지 않습니다 |
+| **JSON-LD** | `ProfilePage` · `Person` · `ItemList`×2 · `FAQPage`. **화면에 실제로 보이는 글만** 올립니다 — 위키는 안 보이므로 FAQ로 올리지 않습니다 |
+| **`/iron.md`** | 이력서 전문 Clean Markdown (~16KB). 페이지와 **같은 상수**에서 생성되어 어긋날 사본이 없습니다 |
+| **`Accept: text/markdown`** | 홈 요청을 rewrite로 `/iron.md`에 연결(`proxy.js`). URL은 그대로라 에이전트가 인용하는 주소 = 사람이 여는 주소. `Vary: Accept` |
+| **`/llms.txt`** · **`/llms-full.txt`** | 색인과 전문. 역시 `lib/markdown.js`가 생성 |
+| **`robots.txt`** | GPTBot·ClaudeBot·PerplexityBot 등 16종을 **이름으로** 허용. 와일드카드만 두면 색인을 건너뛰는 봇이 있습니다 |
+
+```bash
+curl -H "Accept: text/markdown" https://…/     # 3D 세계 대신 마크다운 전문
+```
+
+---
+
 ## 성능
 
 | 지표 | 값 |
 |---|---|
-| 초기 번들 | **74KB gzip** — three.js는 킷 섹션이 뷰포트에 들어온 뒤에만 로드 |
-| Lighthouse (mobile) | 접근성 · 베스트프랙티스 · SEO · 에이전틱 **모두 100**, 실패 0건 |
-| Core Web Vitals | LCP **342ms** · CLS **0.00** · INP **12ms** · 렌더 블로킹 **0ms** |
+| 초기 번들 | **185KB gzip** — three.js·스크럽 엔진·파티클 막·모델은 전부 필요할 때만 |
 | 3D 모델 | 54.44MB → **1.19MB** (simplify + meshopt + 텍스처 WebP) |
 | 클립 | 720p crf26/GOP10, 개당 약 3MB · Blob 로드로 byte-range 의존 제거 |
+| 파비콘 | 1.5MB → **52KB** (1024px 원본이 그대로 들어가 있었습니다) |
+
+> **번들이 74KB에서 185KB로 늘었습니다.** App Router 런타임의 값이고, 그 대가로 산 것이
+> 위의 AEO 표입니다. 에이전트에게는 초기 JS가 0이므로 이 거래는 그쪽에서 이득입니다.
+> Lighthouse 재측정은 Vercel 배포 후에 해야 의미가 있어 이전 수치는 내렸습니다.
 
 몇 가지 결정:
 
@@ -191,9 +220,11 @@ new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
 
 ## 스택
 
-- **Vite 7 + React 19** — SSR이 필요 없는 단일 페이지라 정적 빌드
+- **Next.js 16.3 App Router + React 19** — 본문은 전부 서버 컴포넌트. 클라이언트로 넘어가는 것은
+  다섯 조각뿐입니다: `CoverParallax`(포인터) · `WorldMount`(엔진) · `Oracle`(WebGPU+워커) ·
+  `Live3D`(GLB) · `Guide`(스크롤 위치)
 - **scroll-world 스크럽 엔진** — 의존성 0의 바닐라 JS. 클립을 Blob으로 로드해 호스트의
-  byte-range 지원과 무관하게 seek 보장
+  byte-range 지원과 무관하게 seek 보장. 카피는 서버가 그리고 엔진은 **있으면 재사용**합니다
 - **씬 / 영상** — Higgsfield `gpt_image_2` + `seedance_2_0_mini`, 2D 셀 애니메이션 화풍
 - **캐릭터** — `nano_banana_2_lite`(1크레딧/장)로 시트, 원본 Ai-ng를 레퍼런스로 정체성 고정
 - **3D** — `tripo_h3_1_image_to_3d` → `gltf-transform`으로 최적화
@@ -204,12 +235,16 @@ new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm run build    # dist/
-npm run preview
+npm run dev      # http://localhost:3000
+npm run build    # .next/
+npm start        # 프로덕션 서버
 
-node src/oracle/wiki.check.mjs   # 위키 검색 회귀 체크 (프레임워크 없음)
+npm run check    # 위키 검색 회귀 체크 44건 (프레임워크 없음)
 ```
+
+배포는 Vercel입니다. `NEXT_PUBLIC_SITE_URL`을 두면 그 값이, 없으면 Vercel이 주는
+`VERCEL_PROJECT_PRODUCTION_URL`이 canonical·sitemap·JSON-LD의 기준이 됩니다 —
+프리뷰 배포가 스스로를 정본이라 주장하지 않도록 하드코딩하지 않았습니다(`lib/site.js`).
 
 변경 이력과 결정 근거는 [CHANGELOG.md](CHANGELOG.md)에 있습니다.
 

@@ -130,6 +130,23 @@ a { color: inherit; }
 #world .sw-copylayer { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
 #world .sw-copy { opacity: 0; }
 
+/* 엔진 청크가 안 올라온 경우. 위 두 줄에 굳어 버리면 다섯 장이 화면에서 사라지므로,
+   영상 없이 글만이라도 읽히게 문서 흐름으로 되돌립니다. */
+#world[data-sw-failed] .sw-copylayer {
+  position: static;
+  display: grid;
+  gap: clamp(28px, 6vh, 64px);
+  padding: clamp(28px, 8vw, 96px) var(--gutter);
+  pointer-events: auto;
+}
+#world[data-sw-failed] .sw-copy {
+  position: static;
+  opacity: 1;
+  width: auto;
+  max-width: var(--measure);
+  transform: none;
+}
+
 /* Ai-ng does the "keep scrolling" job now — two prompts is one too many. */
 #world .sw-hint { display: none; }
 

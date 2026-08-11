@@ -1,3 +1,4 @@
+import { COVER_STATS } from '@/lib/content';
 import CoverParallax from './CoverParallax';
 import Oracle from './oracle/Oracle';
 
@@ -6,12 +7,6 @@ import Oracle from './oracle/Oracle';
 
    글자는 전부 서버에서 나옵니다. 클라이언트로 넘어가는 것은 포인터를 CSS 변수로 옮기는
    래퍼 하나뿐입니다. */
-const STATS = [
-  ['5,240+', '커밋 · 9개월'],
-  ['3 / 3', '저장소 핵심 기여자'],
-  ['98%', '웹 프론트 커밋 점유'],
-  ['440', '머지한 Pull Request'],
-];
 
 export default function Cover() {
   return (
@@ -36,7 +31,7 @@ export default function Cover() {
         <Oracle />
 
         <dl className="plate plate--stats">
-          {STATS.map(([n, l]) => (
+          {COVER_STATS.map(([n, l]) => (
             <div className="stat" key={l}>
               <dt className="stat__n">{n}</dt>
               <dd className="stat__l">{l}</dd>

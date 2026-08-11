@@ -27,7 +27,13 @@ export default function WorldMount({ children }) {
         sections,
         connectors,
       });
-    }).catch((err) => console.error('[world] 스크럽 엔진을 불러오지 못했습니다:', err));
+    }).catch((err) => {
+      // 엔진이 안 오면 그 CSS도 안 옵니다. 그러면 카피 레이어는 globals.css의 fixed/opacity:0에
+      // 굳은 채 남아, 이력서에서 제일 할 말이 많은 다섯 장이 화면에서 통째로 사라집니다.
+      // 조용히 비우느니 문서 흐름에 그대로 얹습니다 — 영상은 없어도 글은 읽힙니다.
+      console.error('[world] 스크럽 엔진을 불러오지 못했습니다:', err);
+      el.dataset.swFailed = '1';
+    });
 
     // 엔진의 크롬과 하늘은 position:fixed라서 커버와 마무리 섹션 위에 올라앉습니다.
     // 세계가 화면에 있는 동안에만 보입니다.
