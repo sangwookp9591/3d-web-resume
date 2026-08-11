@@ -71,7 +71,9 @@ trace/screenshot 아티팩트, CI 게이트를 두 저장소에서 같은 방식
   {
     id: 'cart',
     title: 'FRONT — QR 장바구니 복구와 서버 reconcile',
-    tags: '장바구니 카트 cart 담기 복구 restore reconcile 로그인 비로그인 병합 상태머신 유실 중복 정합성 qr',
+    // 유실·중복·정합성은 쿠폰 조각의 핵심어입니다. 여기 같이 달아 뒀더니 이 조각이
+    // 더 짧다는 이유로 길이 정규화에서 이겨, "쿠폰 정합성"에 장바구니가 1등을 했습니다.
+    tags: '장바구니 카트 cart 담기 복구 restore reconcile 로그인 비로그인 병합 상태머신 qr 주문',
     text: `QR로 담은 장바구니는 로그인 전후로 상태가 갈립니다. 비로그인 로컬 장바구니와 서버 장바구니 중
 어느 쪽이 정본인지 클라이언트가 정하면, 담은 것이 사라지거나 두 번 담깁니다.
 병합 규칙을 화면 코드에 흩는 대신 cart/restore 호출과 서버 확정 reconcile 흐름으로 옮겨
@@ -297,11 +299,15 @@ OpenSearch, Redis, ShedLock, Resilience4j, ArchUnit, Testcontainers, DDD/Hexagon
   {
     id: 'site',
     title: '이 사이트',
-    tags: '사이트 포트폴리오 이력서 만든 webgpu 스크롤 아잉 aing 마스코트 캐릭터 three 라이트하우스 오라클 채팅창 셰이더',
-    text: `이 이력서 사이트는 스크롤이 카메라를 움직이는 하늘 위 세계입니다. 미리 렌더한 카메라 비행 영상을
-스크롤 위치로 스크럽해 다섯 개의 섬(기원·검증·규율·지능·정합성) 안으로 날아 들어갑니다.
+    tags: '사이트 포트폴리오 이력서 만든 webgpu 스크롤 픽셀 여정 아잉 aing 마스코트 캐릭터 three 오라클 채팅창 셰이더',
+    text: `이 이력서 사이트에서 스크롤은 재생이 아니라 아잉의 걸음입니다. 스크롤 위치가 곧 캐릭터의 x 좌표이고,
+다섯 장소(기원·검증·규율·지능·정합성)를 순간이동 없이 걸어서 지나갑니다 — 새벽 숲의 오두막에서
+강의 돌다리, 문지기 초소, 언덕 전망대를 지나 해질녘 창고와 캠프파이어까지.
+기술 이름을 간판으로 걸지 않고 장소와 사물로 말합니다. 길가의 등불 열넷이 언어 14개이고,
+물살이 센데도 흔들리지 않는 돌다리가 플레이크 0입니다.
+화면을 붙잡는 것은 JS가 아니라 position:sticky라서, 엔진이 없어도 모션을 줄여 달라고 해도 다섯 장은 그대로 읽힙니다.
 마스코트 Ai-ng(아잉)는 재사용 가능한 에셋 킷 — 표정 16종, 액션 16종, 모션 6종, GLB 3D 모델입니다.
-초기 번들 185KB gzip(App Router 런타임 포함), 3D 원본 54MB를 1.19MB로 압축했습니다.
+초기 번들 210KB gzip(App Router 런타임 포함), 픽셀 에셋 26장 772KB.
 지금 이 검색창은 WebGPU 컴퓨트 셰이더로 파티클 1만 6천 개가 만드는 막이고, 답은 브라우저 안에서 도는 소형 언어 모델(Qwen3 0.6B, 약 570MB)이 합니다 — 질문은 서버로 나가지 않습니다.
 사이트 자체는 Next.js 16 App Router로, 본문은 전부 서버 컴포넌트에서 렌더하고 AI 에이전트를 위해 Accept: text/markdown 협상과 llms.txt를 제공합니다.`,
   },
@@ -331,7 +337,7 @@ main에 병합되지 않은 작업(Carry 어드민)은 운영 중인 기능이 �
 // 라틴과 한글이 붙어 있으면 떼어 놓습니다. "ArchUnit을"을 한 토큰으로 두면 한글이
 // 섞였다는 이유로 라틴 2-gram(ar·rc·ch…)이 생기는데, 태그 쪽 "archunit"은 순수 라틴이라
 // 2-gram이 없어서 서로 영영 만나지 못합니다 — 조사 하나 붙였다고 검색이 통째로 빕니다.
-const norm = (s) => s.toLowerCase()
+const norm = (s: string) => s.toLowerCase()
   .replace(/([a-z0-9])([가-힣])/g, '$1 $2')
   .replace(/([가-힣])([a-z0-9])/g, '$1 $2')
   .replace(/[^a-z0-9가-힣]+/g, ' ')
@@ -339,19 +345,25 @@ const norm = (s) => s.toLowerCase()
 
 // ponytail: 형태소 분석기 대신 2-gram + 토큰 매칭. 한국어 조사("iron은", "권한을")가 붙어도
 // 2-gram이 뚫고 들어갑니다. 청크가 10개뿐이라 전체 스캔이 인덱스보다 쌉니다.
-const words = (s) => new Set(norm(s).split(' ').filter((w) => w.length > 1));
+const words = (s: string) => new Set(norm(s).split(' ').filter((w) => w.length > 1));
 
 // 어느 조각에나 나올 법한 서술어들. 이걸 안 빼면 "설계"가 어쩌다 한 제목에만 있다는
 // 이유로 희소어 취급을 받아, "쿠폰은 왜 새로 설계했어?"에 결제 조각이 1등을 합니다.
-const STOP = new Set([
+export const STOP = new Set([
   '설계', '구현', '개발', '만들', '했어', '하나', '어떻게', '무엇', '뭐야', '뭔가',
   '대해', '이야기', '알려', '한거', '했나', '했는', '하는', '있어', '있나', '싶어',
   // 조각이 스무 개를 넘기면서, 어느 글에나 나올 법한 말이 어쩌다 한 조각에만 있다는
   // 이유로 희소어 취급을 받아 1순위를 가져가는 일이 생겼습니다("쿠폰 왜 새로 만들었어" → 팀 조각).
-  '새로', '사람', '방식', '사용', '경우', '문제', '작업',
+  //
+  // 여기 넣는 말은 반드시 **어느 조각의 태그에도 없어야** 합니다. STOP은 질의만이 아니라
+  // 색인(grams)에도 걸리므로, 태그에 있는 말을 넣으면 그 태그가 통째로 사라집니다.
+  // 한 번 그렇게 죽였습니다 — '방식'을 넣자 '일하는 방식 세 가지' 조각이 자기 태그로
+  // 안 잡히고 "작업 방식"이 0건이 됐는데, 검증은 56건 전부 통과했습니다.
+  // 그래서 지금은 wiki.check.ts가 STOP과 태그의 교집합을 직접 막습니다.
+  '새로', '경우',
 ]);
 
-const grams = (s) => {
+const grams = (s: string) => {
   const out = words(s);
   // 2-gram은 제목·태그에만. 본문까지 넣으면 긴 청크가 우연한 음절 겹침으로 이기고,
   // "어떻게" 같은 기능어가 주제어와 같은 무게를 갖습니다.
@@ -372,7 +384,7 @@ const HAY = WIKI.map((w) => {
 
 // 문서 빈도. "iron", "커밋"처럼 거의 모든 조각에 나오는 말은 주제를 가르지 못하므로
 // 가중치를 나눠 떨어뜨립니다 — 안 하면 이름만 들어가도 소개 조각이 1등을 합니다.
-const DF = new Map();
+const DF = new Map<string, number>();
 for (const w of HAY) for (const g of w.hay) DF.set(g, (DF.get(g) ?? 0) + 1);
 
 const AVG_LEN = HAY.reduce((a, w) => a + w.hay.size, 0) / HAY.length;
@@ -382,17 +394,18 @@ const AVG_LEN = HAY.reduce((a, w) => a + w.hay.size, 0) / HAY.length;
 const NAME = /(iron|아이언|박상욱|상욱)/gi;
 
 /** 질문과 관련 있는 위키 조각을 점수순으로. 매칭이 하나도 없으면 빈 배열. */
-export function retrieve(query, k = 3) {
+export function retrieve(query: string, k = 3) {
   const stripped = query.replace(NAME, ' ').trim();
   return rank(stripped, k) ?? rank(query, k) ?? [];
 }
 
-function rank(query, k) {
+function rank(query: string, k: number) {
   const q = grams(query);
   if (!q.size) return null;
   const out = HAY.map((w) => {
     let s = 0;
-    for (const g of q) if (w.hay.has(g)) s += (w.tagHay.has(g) ? 5 : 1) / DF.get(g);
+    // DF는 모든 조각의 hay로 지었으므로, hay에 있는 g는 DF에도 반드시 있습니다.
+    for (const g of q) if (w.hay.has(g)) s += (w.tagHay.has(g) ? 5 : 1) / DF.get(g)!;
     // 길이 정규화(BM25의 b항과 같은 꼴). 개요 조각은 온갖 말을 다 담고 있어서 안 나누면
     // "쿠폰"을 물어도 백엔드 개요가 1등을 하고, 제곱근으로 나누면 반대로 가장 짧은
     // 조각이 아무 질문에나 튀어나옵니다. 평균 길이 기준으로 완만하게만 눌러야 합니다.
@@ -409,7 +422,7 @@ function rank(query, k) {
 }
 
 /** 모델 없이도 답이 되는 폴백: 가장 가까운 조각을 그대로 인용합니다. */
-export function lookup(query) {
+export function lookup(query: string) {
   const hits = retrieve(query, 2);
   if (!hits.length) {
     return '그 질문은 이 위키에 없네요. 이력·저장소·기술 스택·일하는 방식에 대해 물어보시면 답할 수 있습니다.';

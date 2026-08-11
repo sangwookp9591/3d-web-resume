@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-export default function Live3D({ src }) {
-  const host = useRef(null);
+export default function Live3D({ src }: { src: string }) {
+  const host = useRef<HTMLDivElement>(null);
   const [state, setState] = useState('idle');
   const [api, setApi] = useState('');
 
@@ -32,7 +32,9 @@ export default function Live3D({ src }) {
         let renderer, apiName = 'WebGL';
         if (useGPU) {
           try {
-            const r = new THREE.WebGPURenderer({ antialias: true, alpha: true });
+            // useGPU가 true인 갈래에서만 옵니다 — THREE는 그때 `three/webgpu`입니다.
+            const GPU = THREE as typeof import('three/webgpu');
+            const r = new GPU.WebGPURenderer({ antialias: true, alpha: true });
             await r.init();
             renderer = r;
             apiName = 'WebGPU';
@@ -45,7 +47,7 @@ export default function Live3D({ src }) {
           // 그래서 여기서 THREE.WebGLRenderer를 부르면 `new undefined(...)`가 되어, navigator.gpu는
           // 있는데 init이 실패하는 기기 — 드라이버 블록리스트, 플래그로 끈 경우 — 에서 폴백이
           // 폴백이 아니라 에러였습니다. 그 경로에서만 코어 빌드를 마저 받습니다.
-          const CORE = useGPU ? await import('three') : THREE;
+          const CORE = (useGPU ? await import('three') : THREE) as typeof import('three');
           if (stop) return;
           renderer = new CORE.WebGLRenderer({ antialias: true, alpha: true });
         }
@@ -99,11 +101,11 @@ export default function Live3D({ src }) {
         camera.updateProjectionMatrix();
 
         const mixer = gltf.animations?.length ? new THREE.AnimationMixer(model) : null;
-        gltf.animations?.forEach((c) => mixer.clipAction(c).play());
+        gltf.animations?.forEach((c) => mixer!.clipAction(c).play());   // 클립이 있으면 mixer도 있습니다
 
-        let drag = null, spin = 0, vel = 0.004;
-        const down = (e) => { drag = e.clientX; vel = 0; };
-        const move = (e) => { if (drag != null) { spin += (e.clientX - drag) * 0.01; drag = e.clientX; } };
+        let drag: number | null = null, spin = 0, vel = 0.004;
+        const down = (e: PointerEvent) => { drag = e.clientX; vel = 0; };
+        const move = (e: PointerEvent) => { if (drag != null) { spin += (e.clientX - drag) * 0.01; drag = e.clientX; } };
         const up = () => { drag = null; vel = 0.004; };
         el.addEventListener('pointerdown', down);
         window.addEventListener('pointermove', move);

@@ -10,7 +10,9 @@ export const STAGES = [
   'footprint', 'principles', 'kit', 'colophon',
 ];
 
-export const SCRIPT = {
+// 키는 useStage가 DOM의 [data-stage]에서 읽어 오는 값이라 타입이 좁혀지지 않습니다.
+// 없는 무대는 Guide가 cover로 되돌립니다.
+export const SCRIPT: Record<string, { motion: string; pose: string; text: string }> = {
   cover: {
     motion: 'wave', pose: 'wave',
     text: '안녕! 나는 아잉이야. 여긴 iron이 9개월 동안 걸어온 길이고, 지나갈 곳이 다섯 군데야. 같이 걸을래?',

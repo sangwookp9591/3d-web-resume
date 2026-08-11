@@ -7,7 +7,7 @@ import { REPOS } from './content';
    /llms-full.txt)로 냅니다. 반대로 아래 다섯 장면과 저장소 수치는 이제 서버가 그리므로
    그대로 근거가 됩니다. */
 
-const abs = (p) => new URL(p, SITE_URL).href;
+const abs = (p: string) => new URL(p, SITE_URL).href;
 
 const person = {
   '@type': 'Person',

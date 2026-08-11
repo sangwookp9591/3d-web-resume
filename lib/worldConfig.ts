@@ -1,8 +1,8 @@
 // 5 scenes of the pixel journey. Every number here comes from the resume — no invented metrics.
 // Scene art: 16-bit side-scrolling pixel art (docs/pixel-journey.md), camera: walk + parallax.
 
-const BG = (n) => `/pixel/bg-${n}.webp`;
-const PROP = (s, n) => `/pixel/prop-${s}-${n}.webp`;
+const BG = (n: number) => `/pixel/bg-${n}.webp`;
+const PROP = (s: number, n: number) => `/pixel/prop-${s}-${n}.webp`;
 
 export const sections = [
   {
@@ -73,6 +73,6 @@ export const sections = [
 
 // 아잉 스프라이트와 공용 타일. 씬에 묶이지 않고 여정 내내 쓰입니다.
 export const AING_POSES = ['idle', 'walk-1', 'walk-2'];
-export const AING = (pose) => `/pixel/aing-${pose}.webp`;
+export const AING = (pose: string) => `/pixel/aing-${pose}.webp`;
 export const CLOUDS = ['/pixel/cloud-1.webp', '/pixel/cloud-2.webp'];
 export const GROUND = '/pixel/ground.webp';

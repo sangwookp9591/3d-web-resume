@@ -1,6 +1,6 @@
 // node src/oracle/wiki.check.mjs — 검색이 엉뚱한 조각을 1순위로 올리면 실패합니다.
 import assert from 'node:assert/strict';
-import { WIKI, retrieve, lookup } from './wiki.js';
+import { WIKI, STOP, retrieve, lookup } from './wiki.ts';
 
 const CASES = [
   // 개요
@@ -71,14 +71,35 @@ for (const [q, want] of [['쿠폰 정합성', 'coupon'], ['재색인 느려', 's
   assert.ok(retrieve(q, 3).some((w) => w.id === want), `"${q}"의 근거에 ${want}가 없습니다`);
 }
 
+/* STOP에 넣은 말이 어느 조각의 태그에도 없어야 합니다.
+   STOP은 질의만이 아니라 색인에도 걸리므로, 태그에 있는 말을 STOP에 넣으면 그 태그가
+   통째로 사라집니다. 실제로 '방식'을 넣어 '일하는 방식 세 가지' 조각을 자기 태그로
+   못 찾게 만든 적이 있는데, 그때도 아래 질의 케이스는 전부 통과했습니다.
+   케이스를 늘리는 것으로는 이걸 못 잡습니다 — 겹침 자체를 금지해야 잡힙니다. */
+const tagWords = new Set(
+  WIKI.flatMap((w) => w.tags.toLowerCase().split(/[^a-z0-9가-힣]+/).filter((t) => t.length > 1))
+);
+for (const s of STOP) {
+  assert.ok(!tagWords.has(s), `STOP의 "${s}"가 어느 조각의 태그에 있습니다 — 그 태그는 검색되지 않습니다`);
+}
+
+/* 태그로 자기 조각을 부를 수 있어야 합니다. 위 겹침 검사가 STOP 쪽을 막는다면
+   이쪽은 반대편 — 조각이 늘면서 다른 조각에 밀려 자기 태그로도 안 잡히는 경우를 봅니다. */
+for (const [q, want] of [['일하는 방식', 'principles'], ['작업 방식', 'principles'], ['팀에 공유', 'team']]) {
+  const got = retrieve(q, 3).map((w) => w.id);
+  assert.ok(got.includes(want), `"${q}" → ${got.join(',') || '(없음)'} (근거에 ${want}가 없습니다)`);
+}
+
 assert.equal(retrieve('짜장면 맛집').length, 0, '관련 없는 질문은 비어야 합니다');
 assert.match(lookup('짜장면 맛집'), /위키에 없네요/);
 assert.match(lookup('iron 누구'), /박상욱/);
 
 // 지어내면 안 되는 것들이 위키에 명시돼 있어야 합니다.
-const caution = WIKI.find((w) => w.id === 'caution').text;
+const caution = WIKI.find((w) => w.id === 'caution')!.text;
 for (const must of ['RAG', 'pgvector', 'nicepay']) {
   assert.ok(caution.includes(must), `사실 정확성 조각에 ${must} 언급이 없습니다`);
 }
 
-console.log(`wiki: ${WIKI.length} chunks, ${CASES.length + 9} checks pass`);
+// 질의 케이스 + 근거 3개 검사 + STOP 겹침(STOP 크기만큼) + 태그 자기호출 + 무관 질문 3 + 금칙어 3
+const CHECKS = CASES.length + 3 + STOP.size + 3 + 3 + 3;
+console.log(`wiki: ${WIKI.length} chunks, ${CHECKS} checks pass`);

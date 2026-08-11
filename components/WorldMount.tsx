@@ -5,8 +5,8 @@ import { useEffect, useRef } from 'react';
 /* 바닐라 엔진이 이 노드 아래에 픽셀 무대를 짓습니다. React는 노드와 서버가 그려 둔 씬만
    넘기고 빠집니다 — 이 컴포넌트에는 상태가 없어서 다시 렌더될 일이 없고, 그래서 엔진이
    DOM을 주무르는 동안 React와 부딪히지 않습니다. */
-export default function WorldMount({ children }) {
-  const host = useRef(null);
+export default function WorldMount({ children }: { children: React.ReactNode }) {
+  const host = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = host.current;

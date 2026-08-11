@@ -8,7 +8,12 @@ import Live3D from './Live3D';
    매니페스트는 저장소에 있는 정적 파일이므로 빌드 타임에 그냥 import합니다. 폭포도, fetch도,
    빈 상태도 없어집니다. */
 
-function Row({ title, note, items, big }) {
+function Row({ title, note, items, big }: {
+  title: string;
+  note: string;
+  items: { name: string; file: string }[];
+  big?: boolean;
+}) {
   if (!items?.length) return null;
   return (
     <div className="kit__row">
@@ -30,7 +35,7 @@ function Row({ title, note, items, big }) {
   );
 }
 
-const setItems = (name) =>
+const setItems = (name: keyof typeof kit.sets) =>
   (kit.sets?.[name]?.frames || []).map((n) => ({ name: n, file: `${name}/${n}.webp` }));
 
 export default function CharacterKit() {

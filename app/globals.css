@@ -165,7 +165,11 @@ a { color: inherit; }
   .px-copy {
     position: sticky; top: 0;
     height: 100vh;
-    display: grid; align-content: center;
+    /* safe center: 카피가 화면보다 길어지면 가운데 정렬이 위아래 양쪽으로 넘칩니다.
+       그러면 판이 붙어 있는 동안 제목 첫 줄이 y=0 위에 있어 읽을 수도 스크롤할 수도
+       없습니다 — 200% 확대에서 실제로 그렇게 됩니다(WCAG 1.4.4·1.4.10).
+       safe는 넘칠 때만 시작 정렬로 물러납니다. */
+    display: grid; align-content: safe center;
     width: min(46vw, 520px);
     padding-block: 0;
   }
@@ -250,11 +254,23 @@ a { color: inherit; }
       transparent 100%);
   }
   /* 좁은 화면에서는 레일을 점으로 줄입니다. 이름은 남아 있어서 스크린리더와 키보드는
-     그대로 다섯 장소를 오갑니다. */
-  .px-route a { width: 12px; height: 12px; padding: 0; background: color-mix(in oklab, var(--accent) 40%, transparent); }
-  .px-route a:hover { background: var(--accent); }
+     그대로 다섯 장소를 오갑니다.
+     점은 12px로 보이지만 누르는 자리는 24px입니다 — 손가락이 닿는 면적은
+     WCAG 2.2 SC 2.5.8의 24×24를 지켜야 하고, 점끼리도 그만큼 떨어져야 합니다.
+     그림자로 점을 그리고 상자 자체는 비워 두면 보이는 크기와 닿는 크기를 따로 둘 수 있습니다. */
+  .px-route a {
+    width: 24px; height: 24px; padding: 0;
+    background: none;
+    display: grid; place-items: center;
+  }
+  .px-route a::before {
+    content: ''; width: 12px; height: 12px; border-radius: 999px;
+    background: color-mix(in oklab, var(--accent) 40%, transparent);
+    transition: background 200ms ease;
+  }
+  .px-route a:hover::before { background: var(--accent); }
   .px-route span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .px-route ol { gap: 10px; padding: 10px 7px; }
+  .px-route ol { gap: 2px; padding: 6px 3px; }
 }
 
 /* ══ Cover ══════════════════════════════════════════════════════════════ */

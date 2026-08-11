@@ -8,7 +8,7 @@ import WorldMount from './WorldMount';
    지금은 반대입니다: 글과 스크롤 길이가 이 마크업이고, 엔진(lib/pixel-journey.js)은
    그 위에 그림만 얹습니다. 엔진이 없어도 여정은 읽힙니다. */
 
-const pad = (n) => String(n).padStart(2, '0');
+const pad = (n: number) => String(n).padStart(2, '0');
 
 export default function World() {
   return (

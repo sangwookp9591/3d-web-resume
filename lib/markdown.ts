@@ -9,7 +9,7 @@ import { REPOS, PRINCIPLES } from './content';
    에이전트가 3D 세계도, WebGPU도, 번들도 없이 이력 전체를 한 번에 읽게 하는 것이 목적이라
    장식은 전부 뺍니다. */
 
-const list = (items) => items.map((s) => `- ${s}`).join('\n');
+const list = (items: string[]) => items.map((s) => `- ${s}`).join('\n');
 
 /** 사람이 읽어도 되는 전체 이력서. Accept: text/markdown과 /iron.md가 이걸 냅니다. */
 export function resumeMarkdown() {

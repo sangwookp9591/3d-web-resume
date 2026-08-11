@@ -13,11 +13,11 @@ const CFG = {
   cell: 18,                                 // 밀도 그리드 셀 (CSS px)
 };
 
-const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
-const clamp01 = (v) => clamp(v, 0, 1);
-const smooth = (t) => { t = clamp01(t); return t * t * (3 - 2 * t); };
-const smoothRange = (v, a, b) => smooth((v - a) / (b - a || 1e-6));
-const mix = (a, b, t) => a + (b - a) * t;
+const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
+const clamp01 = (v: number) => clamp(v, 0, 1);
+const smooth = (t: number) => { t = clamp01(t); return t * t * (3 - 2 * t); };
+const smoothRange = (v: number, a: number, b: number) => smooth((v - a) / (b - a || 1e-6));
+const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 
 /* ── 형태 ────────────────────────────────────────────────────────────────
    morph m∈[0,1] → 현재 반폭/반높이/코너R. 폭이 먼저 벌어지고 높이가 뒤따르며,
@@ -27,7 +27,7 @@ const Shape = {
   expanded: { ...CFG.expanded },
   anchor: { x: 0, y: 0 },   // 도형 중심 (화면 좌표, y-down)
 
-  dims(m) {
+  dims(m: number) {
     const C = Shape.collapsed, E = Shape.expanded;
     const ew = smoothRange(m, 0.0, 0.78);
     const eh = smoothRange(m, 0.16, 1.0);
@@ -38,7 +38,7 @@ const Shape = {
     };
   },
 
-  resize(w, h) {
+  resize(w: number, h: number) {
     const mg = w < 560 ? 14 : 28;
     const maxHx = (w - mg * 2) / 2;
     // 좁은 화면에서 둘 다 화면 폭에 걸리면 폭이 안 변해 "자란다"는 느낌이 사라집니다.
@@ -65,7 +65,7 @@ const Sim = {
   agitation: 0, agitationTarget: 0,
   reduced: 0,
 
-  step(dt) {
+  step(dt: number) {
     this.time += dt;
     // 스프링. 목표가 도중에 뒤집혀도 현재 진행률에서 자연스럽게 방향을 틉니다.
     const k = this.reduced ? 150 : 40;
@@ -92,7 +92,7 @@ const Sim = {
     this.agitation += (this.agitationTarget - this.agitation) * Math.min(1, dt * 4.5);
   },
 
-  emitWave(x, y, amp = 2400) {
+  emitWave(x: number, y: number, amp = 2400) {
     this.wave.x = x; this.wave.y = y; this.wave.t = 0; this.wave.amp = amp;
   },
 };
@@ -100,7 +100,7 @@ const Sim = {
 /* ── 파티클 초기 데이터: [pos.xy, vel.xy, u, s, seed, edge] ─────────────── */
 const PHI_INV = 0.6180339887498949;
 
-function makeParticles(n, cx, cy) {
+function makeParticles(n: number, cx: number, cy: number) {
   const a = new Float32Array(n * 8);
   for (let i = 0; i < n; i++) {
     const o = i * 8;
@@ -363,8 +363,40 @@ fn fsPost(in: PO) -> @location(0) vec4f {
 }
 `;
 
+/* lib.dom(TS 7)에는 WebGPU 인터페이스는 있는데 플래그 네임스페이스가 빠져 있습니다.
+   전역을 건드리지 않도록 이 모듈 안에서만 선언합니다(런타임 값은 브라우저가 줍니다). */
+declare const GPUBufferUsage: { readonly UNIFORM: number; readonly STORAGE: number; readonly COPY_DST: number };
+declare const GPUShaderStage: { readonly VERTEX: number; readonly FRAGMENT: number; readonly COMPUTE: number };
+declare const GPUTextureUsage: { readonly RENDER_ATTACHMENT: number; readonly TEXTURE_BINDING: number };
+
 class Backend {
-  static async create(canvas) {
+  canvas: HTMLCanvasElement;
+  device: GPUDevice;
+  ctx: GPUCanvasContext;
+  format: GPUTextureFormat;
+  count: number;
+  uni: Float32Array;
+  uniBuf: GPUBuffer;
+  simLayout: GPUBindGroupLayout;
+  scatterPipe: GPUComputePipeline;
+  simPipe: GPUComputePipeline;
+  drawLayout: GPUBindGroupLayout;
+  drawPipe: GPURenderPipeline;
+  postLayout: GPUBindGroupLayout;
+  postPipe: GPURenderPipeline;
+  sampler: GPUSampler;
+  partBuf: GPUBuffer;
+  // 아래는 resize()가 채웁니다 — mountMorph가 backend를 만든 직후 반드시 한 번 부릅니다.
+  offTex!: GPUTexture;
+  offView!: GPUTextureView;
+  postBG!: GPUBindGroup;
+  gw!: number;
+  gh!: number;
+  gridBuf!: GPUBuffer;
+  simBG!: GPUBindGroup;
+  drawBG!: GPUBindGroup;
+
+  static async create(canvas: HTMLCanvasElement) {
     if (!navigator.gpu) throw new Error('WebGPU 미지원');
     const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
     if (!adapter) throw new Error('GPUAdapter 없음');
@@ -386,10 +418,12 @@ class Backend {
     return be;
   }
 
-  constructor(canvas, device) {
+  constructor(canvas: HTMLCanvasElement, device: GPUDevice) {
     this.canvas = canvas;
     this.device = device;
-    this.ctx = canvas.getContext('webgpu');
+    // lib.dom의 getContext에는 'webgpu' 오버로드가 없어 문자열 폴백(RenderingContext)으로 떨어집니다.
+    // null이면 바로 아래 configure에서 던지고, 그 예외는 create()가 받습니다 — 그대로 둡니다.
+    this.ctx = canvas.getContext('webgpu') as unknown as GPUCanvasContext;
     this.format = navigator.gpu.getPreferredCanvasFormat();
     this.ctx.configure({ device, format: this.format, alphaMode: 'premultiplied' });
     // 검증 오류는 예외로 오지 않고 여기로만 옵니다 — 잡아두지 않으면 화면만 비고 원인을 못 봅니다.
@@ -447,7 +481,7 @@ class Backend {
     d.queue.writeBuffer(this.partBuf, 0, data);
   }
 
-  resize(w, h, dpr) {
+  resize(w: number, h: number, dpr: number) {
     const d = this.device;
     const pw = Math.max(1, Math.floor(w * dpr));
     const ph = Math.max(1, Math.floor(h * dpr));
@@ -482,7 +516,7 @@ class Backend {
     ] });
   }
 
-  frame(dt, dims) {
+  frame(dt: number, dims: ReturnType<typeof Shape.dims>) {
     const d = this.device;
     const u = this.uni;
     u[0] = Sim.w; u[1] = Sim.h; u[2] = Sim.dpr; u[3] = Sim.time;
@@ -519,11 +553,26 @@ class Backend {
   destroy() { this.device.destroy(); }
 }
 
+/** mountMorph가 돌려주는 손잡이. Oracle이 막에게 상태를 물려줄 때 이 모양만 봅니다. */
+export type MorphField = {
+  gpu: boolean;
+  open(): void;
+  close(): void;
+  toggle(): void;
+  stir(amount: number): void;
+  setPaused(v: boolean): void;
+  destroy(): void;
+};
+
 /**
  * 캔버스와 패널을 물려주면, 패널의 clip-path와 CSS 변수(--rev-*)를 매 프레임 갱신합니다.
  * @returns {{open(): void, close(): void, toggle(): void, destroy(): void, gpu: boolean}}
  */
-export default async function mountMorph(canvas, panel, { onReveal } = {}) {
+export default async function mountMorph(
+  canvas: HTMLCanvasElement,
+  panel: HTMLElement,
+  { onReveal }: { onReveal?: (revealed: boolean) => void } = {},
+): Promise<MorphField> {
   Sim.reduced = prefersReduced() ? 1 : 0;
   Shape.resize(innerWidth, innerHeight);
 
@@ -532,7 +581,7 @@ export default async function mountMorph(canvas, panel, { onReveal } = {}) {
     backend = await Backend.create(canvas);
   } catch (e) {
     // WebGPU가 없거나 셰이더가 거부되면 CSS 전환만으로 모양을 바꿉니다.
-    console.warn('[morph] GPU 없이 진행합니다:', e.message);
+    console.warn('[morph] GPU 없이 진행합니다:', (e as Error).message);
     canvas.style.display = 'none';
   }
 
@@ -550,13 +599,13 @@ export default async function mountMorph(canvas, panel, { onReveal } = {}) {
   addEventListener('resize', resize);
   resize();
 
-  const onMove = (e) => {
+  const onMove = (e: PointerEvent) => {
     Sim.pointer.x = e.clientX; Sim.pointer.y = e.clientY; Sim.pointer.active = 1;
   };
   // pointerleave는 버블하지 않아서 window에 걸면 영영 안 옵니다 — 그러면 커서가 창을
   // 떠난 뒤에도 파티클이 마지막 좌표를 계속 따라다닙니다. 창 밖으로 나가는 건
   // relatedTarget이 없는 pointerout으로 알아냅니다.
-  const onOut = (e) => { if (!e.relatedTarget) Sim.pointer.active = 0; };
+  const onOut = (e: PointerEvent) => { if (!e.relatedTarget) Sim.pointer.active = 0; };
   addEventListener('pointermove', onMove, { passive: true });
   document.addEventListener('pointerout', onOut, { passive: true });
 
@@ -585,7 +634,7 @@ export default async function mountMorph(canvas, panel, { onReveal } = {}) {
 
   let raf = 0, last = performance.now(), alive = true, paused = false;
   let fpsAcc = 0, fpsN = 0, slow = 0;
-  const loop = (now) => {
+  const loop = (now: number) => {
     if (!alive) return;
     raf = requestAnimationFrame(loop);
     let dt = (now - last) / 1000;
@@ -612,7 +661,7 @@ export default async function mountMorph(canvas, panel, { onReveal } = {}) {
   };
   raf = requestAnimationFrame(loop);
 
-  const setTarget = (v) => {
+  const setTarget = (v: number) => {
     Sim.morphTarget = v;
     Sim.agitationTarget = v;
     Sim.emitWave(Shape.anchor.x, Shape.anchor.y, v ? 2600 : 1800);
@@ -623,8 +672,8 @@ export default async function mountMorph(canvas, panel, { onReveal } = {}) {
     open() { setTarget(1); },
     close() { setTarget(0); },
     toggle() { setTarget(Sim.morphTarget > 0.5 ? 0 : 1); },
-    stir(amount) { Sim.agitationTarget = clamp01(amount); },
-    setPaused(v) {
+    stir(amount: number) { Sim.agitationTarget = clamp01(amount); },
+    setPaused(v: boolean) {
       paused = !!v;
       canvas.classList.toggle('is-away', paused);
       if (!paused) last = performance.now();   // 멈춰 있던 시간이 dt로 쏟아지지 않게

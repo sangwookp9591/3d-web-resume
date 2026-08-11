@@ -4,7 +4,17 @@
    기본이 0.6B인 이유: 이 모델이 하는 일은 "아래 위키 문단만 근거로 3문장 답하기"입니다.
    지식을 꺼내 오는 게 아니라 주어진 글을 다듬는 일이라, 파라미터를 6배 늘려도 방문자가
    느끼는 답의 질보다 3GB의 기다림이 먼저 옵니다. */
-export const MODELS = [
+import type { DataType } from '@huggingface/transformers';
+
+export type ModelSpec = {
+  id: string;
+  label: string;
+  sizeMB: number;
+  dtype: DataType;
+  noThinking?: boolean;
+};
+
+export const MODELS: ModelSpec[] = [
   {
     id: 'onnx-community/Qwen3-0.6B-ONNX',
     label: 'Qwen3 0.6B',
@@ -31,4 +41,4 @@ export const DEFAULT_MODEL = MODELS[0];
 
 /** 모르는 id는 기본 모델로 눕힙니다. 고르는 UI가 없으므로 여기 오는 id는 언제나
     이 표 안의 것이거나, 워커가 load 없이 받은 undefined입니다. */
-export const byId = (id) => MODELS.find((m) => m.id === id) ?? DEFAULT_MODEL;
+export const byId = (id?: string): ModelSpec => MODELS.find((m) => m.id === id) ?? DEFAULT_MODEL;

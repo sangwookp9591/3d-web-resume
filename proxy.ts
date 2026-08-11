@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
 /* 콘텐츠 협상. 에이전트가 `Accept: text/markdown`으로 홈을 요청하면 3D 세계와 번들 대신
    같은 내용의 마크다운을 돌려줍니다. URL은 그대로라(리다이렉트가 아니라 rewrite) 에이전트가
@@ -19,7 +19,7 @@ import { NextResponse } from 'next/server';
    그 주소를 가리킵니다. 그 URL은 몸이 하나뿐이라 어떤 캐시에서도 헷갈릴 일이 없습니다.
    (Vercel에서는 matcher가 잡은 `/`에 대해 엣지가 언제나 이 함수를 먼저 태우므로 실제로
    섞이지 않습니다. 앞단에 제3의 CDN을 두면 그때는 위 한계가 드러납니다.) */
-export function proxy(request) {
+export function proxy(request: NextRequest) {
   const accept = request.headers.get('accept') ?? '';
 
   // text/markdown을 명시적으로 요구할 때만입니다. 브라우저의 Accept에는 */*가 늘 들어 있어서

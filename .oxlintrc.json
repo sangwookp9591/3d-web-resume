@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "jsx-a11y", "nextjs", "import", "oxc"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "env": { "browser": true, "es2024": true, "node": true },
+  "ignorePatterns": [".next/**", "node_modules/**", "public/**", "docs/**", "next-env.d.ts"],
+  "rules": {
+    "eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "typescript/no-explicit-any": "warn",
+    "react/react-in-jsx-scope": "off",
+    "nextjs/no-img-element": "off",
+    "jsx-a11y/prefer-tag-over-role": "off"
+  }
+}

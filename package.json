@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "check": "node lib/wiki.check.mjs"
+    "check": "node lib/wiki.check.ts",
+    "lint": "oxlint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
@@ -16,7 +18,14 @@
     "three": "^0.182.0"
   },
   "devDependencies": {
-    "@gltf-transform/cli": "^4.4.2"
+    "@gltf-transform/cli": "^4.4.2",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@types/three": "^0.185.4",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "oxlint": "^1.78.0",
+    "typescript": "^7.0.2"
   },
   "type": "module"
 }

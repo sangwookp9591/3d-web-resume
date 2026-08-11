@@ -8,7 +8,7 @@ export default function useStage() {
   const [stage, setStage] = useState('cover');
 
   useEffect(() => {
-    const blocks = () => Array.from(document.querySelectorAll('[data-stage]'));
+    const blocks = () => Array.from(document.querySelectorAll<HTMLElement>('[data-stage]'));
 
     const readPlain = () => {
       const all = blocks();

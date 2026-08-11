@@ -7,7 +7,13 @@
    답은 위키가 하고, 브라우저 안의 소형 모델이 올라오면 그쪽으로 넘어갑니다(brain.js). */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import useOracleBrain from './brain.js';
+import useOracleBrain from './brain';
+import type { MorphField } from './morph';
+
+type Brain = ReturnType<typeof useOracleBrain>;
+
+/** 로그 한 줄. pending은 답이 아직 흐르는 중이라는 표시입니다. */
+type Turn = { role: 'you' | 'aing'; text: string; id: string; pending?: boolean };
 
 const PROMPTS = [
   'iron은 어떤 개발자인가요?',
@@ -18,7 +24,7 @@ const PROMPTS = [
   '어떤 기술 스택을 쓰나요?',
 ];
 
-const engineLabel = (brain) => {
+const engineLabel = (brain: Brain) => {
   const name = brain.model.label;
   if (brain.status === 'loading') return `${name} 내려받는 중 ${Math.round(brain.progress * 100)}%`;
   if (brain.status === 'error') return `${name}를 못 올렸습니다 · 위키로 답합니다`;
@@ -29,11 +35,12 @@ const engineLabel = (brain) => {
 
 /* 신기루: 글자가 하나씩 흐려지며 맺혔다가 다시 하나씩 증발합니다.
    한 스팬에 in/out 애니메이션을 이어 붙여 레이어를 겹치지 않습니다. */
-function Mirage({ text }) {
+function Mirage({ text }: { text: string }) {
   return (
     <span className="mirage" key={text} aria-hidden="true">
+      {/* --i는 CSS 변수라 CSSProperties에 이름이 없습니다 — 글자마다 애니메이션을 미는 값입니다. */}
       {[...text].map((ch, i) => (
-        <span className="mirage__c" style={{ '--i': i }} key={i}>{ch === ' ' ? ' ' : ch}</span>
+        <span className="mirage__c" style={{ '--i': i } as React.CSSProperties} key={i}>{ch === ' ' ? ' ' : ch}</span>
       ))}
     </span>
   );
@@ -43,7 +50,7 @@ export default function Oracle() {
   const [open, setOpen] = useState(false);
   const [ready, setReady] = useState(false);   // 막이 다 맺혀서 안을 만질 수 있는 상태
   const [q, setQ] = useState('');
-  const [turns, setTurns] = useState([]);
+  const [turns, setTurns] = useState<Turn[]>([]);
   const [pi, setPi] = useState(0);
   const [away, setAway] = useState(false);     // 커버를 벗어나면 비켜섭니다
   const [busy, setBusy] = useState(false);
@@ -54,12 +61,12 @@ export default function Oracle() {
 
   useEffect(() => setMounted(true), []);
 
-  const canvasRef = useRef(null);
-  const panelRef = useRef(null);
-  const fieldRef = useRef(null);               // morph 핸들
-  const inputRef = useRef(null);
-  const logRef = useRef(null);
-  const barRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const fieldRef = useRef<MorphField | null>(null);   // morph 핸들
+  const inputRef = useRef<HTMLInputElement>(null);
+  const logRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLButtonElement>(null);
 
   /* 파티클 장은 한 번만 붙입니다. 검색창이 이미 그 장의 일부이기 때문에
      WebGPU 초기화는 페이지 진입 직후, 첫 상호작용 전에 끝나 있어야 합니다. */
@@ -70,8 +77,8 @@ export default function Oracle() {
   useEffect(() => {
     if (!mounted) return;
     let dead = false;
-    let field;
-    import('./morph.js').then(async ({ default: mount }) => {
+    let field: MorphField | undefined;
+    import('./morph').then(async ({ default: mount }) => {
       if (dead || !canvasRef.current || !panelRef.current) return;
       field = await mount(canvasRef.current, panelRef.current, { onReveal: setReady });
       if (dead) { field.destroy(); return; }
@@ -120,8 +127,8 @@ export default function Oracle() {
 
   /* 어디에서든 / 또는 Cmd+K로 부르고, Esc로 접습니다. */
   useEffect(() => {
-    const on = (e) => {
-      const typing = /^(INPUT|TEXTAREA)$/.test(e.target.tagName);
+    const on = (e: KeyboardEvent) => {
+      const typing = /^(INPUT|TEXTAREA)$/.test((e.target as HTMLElement).tagName);
       if (!open && !typing && (e.key === '/' || (e.key === 'k' && (e.metaKey || e.ctrlKey)))) {
         e.preventDefault(); grow();
       } else if (open && e.key === 'Escape') shrink();
@@ -137,7 +144,7 @@ export default function Oracle() {
      스크롤도 멈춰야 합니다. 판은 portal로 body에 있으므로 #root만 재우면 됩니다. */
   useEffect(() => {
     if (!open) return;
-    const root = document.getElementById('root');
+    const root = document.getElementById('root')!;
     const prev = document.body.style.overflow;
     root.inert = true;
     document.body.style.overflow = 'hidden';
@@ -162,7 +169,7 @@ export default function Oracle() {
     wasOpen.current = open;
   }, [open]);
 
-  const ask = async (e) => {
+  const ask = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     const text = q.trim();
     if (!text || busy) return;
@@ -171,7 +178,7 @@ export default function Oracle() {
     fieldRef.current?.stir(1);                 // 생각하는 동안 막이 술렁입니다
 
     const id = String(Date.now());
-    const patch = (fn) => setTurns((t) => t.map((v) => (v.id === id ? { ...v, ...fn(v) } : v)));
+    const patch = (fn: (v: Turn) => Partial<Turn>) => setTurns((t) => t.map((v) => (v.id === id ? { ...v, ...fn(v) } : v)));
     setTurns((t) => [...t, { role: 'you', text, id: `${id}q` }, { role: 'aing', text: '', id, pending: true }]);
 
     try {
@@ -180,7 +187,7 @@ export default function Oracle() {
       // 그때 이미 흘러온 반토막을 남겨두면 잘린 문장이 완성된 답처럼 보입니다.
       patch(() => ({ text: full, pending: false }));
     } catch (err) {
-      patch(() => ({ text: `답을 만들지 못했습니다: ${err.message}`, pending: false }));
+      patch(() => ({ text: `답을 만들지 못했습니다: ${(err as Error).message}`, pending: false }));
     } finally {
       setBusy(false);
       fieldRef.current?.stir(0);

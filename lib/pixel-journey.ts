@@ -21,13 +21,13 @@ const IDLE_MS = 140;               // 이 시간 동안 카메라가 안 움직�
 const CLOUD_AT = [0.04, 0.19, 0.31, 0.46, 0.58, 0.73, 0.89];  // 하늘 폭에서의 자리
 const CLOUD_UP = [0.62, 0.18, 0.84, 0.35, 0.05, 0.71, 0.28];  // 지평선 위 높이
 
-const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
-const mod = (a, n) => ((a % n) + n) % n;
+const clamp = (x: number, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const mod = (a: number, n: number) => ((a % n) + n) % n;
 
-function el(tag, cls) { const n = document.createElement(tag); n.className = cls; return n; }
+function el(tag: string, cls: string) { const n = document.createElement(tag); n.className = cls; return n; }
 
 /* 에셋 한 장이 404여도 그 자리만 비고 여정은 이어집니다 — 조용한 빈 화면 대신. */
-function pixel(src, cls) {
+function pixel(src: string, cls: string) {
   const n = new Image();
   n.alt = ''; n.decoding = 'async'; n.className = cls;
   n.addEventListener('error', () => n.remove());
@@ -35,7 +35,7 @@ function pixel(src, cls) {
   return n;
 }
 
-export default function mountPixelJourney(container) {
+export default function mountPixelJourney(container: HTMLElement) {
   if (container.dataset.pxMounted) return;
 
   /* 모션을 줄여 달라고 한 방문자에게는 무대를 아예 짓지 않습니다. 씬을 세로로 쌓아
@@ -44,7 +44,7 @@ export default function mountPixelJourney(container) {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   // 스크롤 길이와 씬 경계는 서버가 그린 섹션이 쥐고 있습니다. 없으면 붙을 데가 없습니다.
-  const scenes = Array.from(container.querySelectorAll('.px-scene'));
+  const scenes = Array.from(container.querySelectorAll<HTMLElement>('.px-scene'));
   if (scenes.length !== sections.length) {
     // 글은 서버 마크업이라 그대로 읽힙니다. 그림만 없는 것이니 조용히 넘어가지는 않습니다.
     console.warn('[world] 씬 마크업을 찾지 못해 픽셀 무대를 짓지 않습니다:', scenes.length);
@@ -81,7 +81,7 @@ export default function mountPixelJourney(container) {
   container.prepend(stage);
 
   // ---- 배치 ----
-  let vh = 0, k = 1, sceneW = 0, tops = [], heights = [];
+  let vh = 0, k = 1, sceneW = 0, tops: number[] = [], heights: number[] = [];
 
   function layout() {
     const vw = window.innerWidth;
@@ -155,7 +155,7 @@ export default function mountPixelJourney(container) {
   // ---- 프레임 ----
   let cam = 0, dir = 1, lastMove = -1e9, shown = -1, live = false, raf = 0, pose = '';
 
-  function frame(now) {
+  function frame(now: number) {
     raf = live ? requestAnimationFrame(frame) : 0;
     const y = window.scrollY;
     let i = 0;
