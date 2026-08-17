@@ -399,6 +399,10 @@ const norm = (s: string) => s.toLowerCase()
 // 2-gram이 뚫고 들어갑니다. 청크가 10개뿐이라 전체 스캔이 인덱스보다 쌉니다.
 const words = (s: string) => new Set(norm(s).split(' ').filter((w) => w.length > 1));
 
+/** 2-gram을 섞지 않은, 있는 그대로의 낱말. terms()가 만든 조각이 진짜 낱말의 머리인지
+    아니면 낱말 한가운데서 우연히 겹친 조각인지 가릴 때 씁니다(answer.related). */
+export const plainWords = words;
+
 // 어느 조각에나 나올 법한 서술어들. 이걸 안 빼면 "설계"가 어쩌다 한 제목에만 있다는
 // 이유로 희소어 취급을 받아, "쿠폰은 왜 새로 설계했어?"에 결제 조각이 1등을 합니다.
 export const STOP = new Set([

@@ -29,11 +29,15 @@ export default function Sharing() {
         ))}
       </ol>
 
-      <p className="share__close">
-        OCR 테스트가 필요하다길래 웹 버전을 만들어 브랜치에 올리고, API 키와 README 설정법,
-        숨김 파일 보는 법까지 적어 뒀습니다. 그래서 어떤 개발자냐고 물으면 —
-        <strong> 새로 나온 것을 팀이 오늘 바로 쓸 수 있는 형태로 바꿔 놓는 사람</strong>입니다.
-      </p>
+      {/* 목록과 같은 폭의 상자 안에서 왼쪽을 맞춥니다. 문단 자신에 max-width를 주면
+          그 폭이 이겨서 auto 마진이 가운데로 밀고, 위 목록보다 안쪽에서 시작합니다. */}
+      <div className="share__foot">
+        <p className="share__close">
+          OCR 테스트가 필요하다길래 웹 버전을 만들어 브랜치에 올리고, API 키와 README 설정법,
+          숨김 파일 보는 법까지 적어 뒀습니다. 그래서 어떤 개발자냐고 물으면 —
+          <strong> 새로 나온 것을 팀이 오늘 바로 쓸 수 있는 형태로 바꿔 놓는 사람</strong>입니다.
+        </p>
+      </div>
     </section>
   );
 }

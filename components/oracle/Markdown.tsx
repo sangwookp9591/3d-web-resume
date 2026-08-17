@@ -13,10 +13,14 @@ const UL = /^\s*[-*]\s+/;
 const OL = /^\s*\d+[.)]\s+/;
 const FENCE = /^\s*```/;
 
-// 굵게 · 기울임 · 코드 · 링크 · 맨 URL · 메일 주소. 순서가 곧 우선순위라 `**`가 `*`보다 앞입니다.
-// `_기울임_`은 일부러 뺐습니다 — 이력에 나오는 파일명(E2E_테스트_설계_방법론.md)이 통째로 기웁니다.
+/* 굵게 · 기울임 · 코드 · 링크 · 맨 URL · 메일 주소. 순서가 곧 우선순위라 `**`가 `*`보다 앞입니다.
+   `_기울임_`은 일부러 뺐습니다 — 이력에 나오는 파일명(E2E_테스트_설계_방법론.md)이 통째로 기웁니다.
+
+   주소 뒤의 문장부호는 주소가 아닙니다. 위키의 연락처 조각은 "연락처는 iron@example.com."
+   처럼 마침표로 끝나는데, 그 마침표까지 물면 받는 사람이 없는 메일 창이 열립니다.
+   그래서 URL은 부호로 끝나지 못하게 하고, 메일은 마지막 마디에 점을 허용하지 않습니다. */
 const INLINE =
-  /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]\n]+\]\([^)\s]+\)|https?:\/\/[^\s<)]+|[\w.+-]+@[\w-]+\.[\w.-]+)/g;
+  /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]\n]+\]\([^)\s]+\)|https?:\/\/[^\s<)]*[^\s<).,;:!?]|[\w.+-]+@[\w-]+(?:\.[\w-]+)+)/g;
 
 // 모델이 만들어 낸 주소를 그대로 믿지 않습니다. 이 두 스킴이 아니면 링크가 아니라 글자입니다.
 const SAFE = /^(https?:|mailto:)/i;
@@ -47,7 +51,11 @@ function inline(text: string): ReactNode[] {
     else if (tok.startsWith('[')) {
       const [, label, href] = tok.match(/\[([^\]]+)\]\(([^)\s]+)\)/)!;
       out.push(link(href, label, key++));
-    } else out.push(link(tok.includes('@') ? `mailto:${tok}` : tok, tok, key++));
+    }
+    // 어느 갈래로 잡혔는지로 가릅니다. @가 들어 있는지로 가르면 경로에 @가 붙은 주소가
+    // (https://github.com/@iron) mailto로 넘어가 죽은 링크가 됩니다.
+    else if (/^https?:/i.test(tok)) out.push(link(tok, tok, key++));
+    else out.push(link(`mailto:${tok}`, tok, key++));
   }
   if (last < text.length) out.push(text.slice(last));
   return out;

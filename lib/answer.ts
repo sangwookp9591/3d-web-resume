@@ -8,7 +8,7 @@
    그래서 어느 경로로 온 답이든 화면에 닿기 전에 여기를 지납니다. 이 파일은 사실을
    만들거나 고치지 않습니다 — 무엇을 보여줄지 고르고, 어떻게 읽힐지만 정합니다. */
 // 확장자를 붙이는 이유는 wiki.check.ts가 이 파일을 번들러 없이 node로 직접 돌리기 때문입니다.
-import { retrieve, terms, type Chunk } from './wiki.ts';
+import { retrieve, terms, plainWords, type Chunk } from './wiki.ts';
 
 /** 위키와 상관없는 질문. 없다고 말하되, 무엇을 물으면 되는지까지 알려 줍니다. */
 export const NO_MATCH =
@@ -126,10 +126,22 @@ const NUDGES = [
   (t: string) => `‘${t}’도 같이 보면 그림이 맞춰집니다.`,
 ];
 /** 질문이 이 조각의 제목·태그를 실제로 건드렸는지. 2순위 조각은 그냥 남은 것 중
-    제일 나은 것일 뿐이라, 이 확인 없이 권하면 엉뚱한 데로 안내합니다. */
-function related(chunk: Chunk, query: Set<string>) {
-  const t = terms(`${chunk.title} ${chunk.tags}`);
-  for (const g of query) if (t.has(g)) return true;
+    제일 나은 것일 뿐이라, 이 확인 없이 권하면 엉뚱한 데로 안내합니다.
+
+    겹치기만 하면 통과시켰더니 못 막았습니다. terms()는 2-gram을 함께 내는데, 그 조각이
+    낱말 한가운데서 겹치는 일이 잦기 때문입니다 — "개발**자인**가요"의 '자인'이
+    "디**자인**시스템"에 걸려서, 소개를 물은 사람에게 공통 인프라 조각을 권했습니다.
+    그래서 양쪽 모두에서 **낱말의 머리**여야 합니다. 한국어는 조사가 뒤에 붙고 합성어는
+    앞을 나눠 가지므로("공유했어" / "공유기록"), 머리를 공유하면 같은 말이고 가운데서
+    겹치면 대개 우연입니다. */
+function related(chunk: Chunk, query: string) {
+  const heads = (s: string) => [...plainWords(s)];
+  const asked = heads(query);
+  const has = heads(`${chunk.title} ${chunk.tags}`);
+  for (const g of terms(query)) {
+    if (!asked.some((w) => w.startsWith(g))) continue;
+    if (has.some((w) => w.startsWith(g))) return true;
+  }
   return false;
 }
 
@@ -154,9 +166,8 @@ export function compose(query: string, hits: Chunk[]): string {
   /* 다음 이야기를 권하는 건 두 조건이 다 맞을 때만입니다. 매번 같은 자리에 같은 꼴의 줄이
      붙으면 그건 답이 아니라 서식으로 읽히고, 질문과 무관한 조각을 권하면 안 권하느니만
      못합니다("어떤 사람이야"의 2순위는 그냥 남은 조각 중 하나일 뿐입니다). */
-  const q = terms(query);
   const said = out.join(' ').length;
-  if (hits[1] && said < 260 && related(hits[1], q)) out.push(nudgeFor(hits[1]));
+  if (hits[1] && said < 260 && related(hits[1], query)) out.push(nudgeFor(hits[1]));
   return out.join('\n\n');
 }
 
@@ -180,7 +191,9 @@ function dedupe(line: string) {
     seen.add(key);
     return true;
   });
-  return kept.length ? kept.join(' ') : line;
+  // 문장을 다시 이을 때 줄 앞의 들여쓰기는 돌려놓습니다. sentences()가 양끝을 다듬으므로
+  // 안 그러면 목록의 중첩 단계가 조용히 펴집니다.
+  return kept.length ? line.match(/^\s*/)![0] + kept.join(' ') : line;
 }
 
 /** 모델 출력을 채팅 말투의 마크다운으로 정리합니다.
@@ -199,8 +212,21 @@ export function polish(raw: string): string {
   t = t.replace(/(?:^|(?<=[.!?]\s))(?:위 |제공된 |주어진 |해당 )?자료에 (?:따르면|의하면|나와 ?있는 대로)[,:]?\s*/g, '');
 
   const out: string[] = [];
+  let fenced = false;
   for (const line of t.split('\n')) {
+    /* 울타리 안은 글이 아니라 코드입니다. 아래 규칙을 그대로 먹이면 `# 설치` 주석이
+       굵은 제목이 되고, `---`가 수평선으로 지워지고, 들여쓰기가 펴집니다.
+       Markdown.tsx는 울타리 안을 있는 그대로 그리므로 그 손상이 그대로 화면에 나갑니다. */
+    if (/^\s*```/.test(line)) { fenced = !fenced; out.push(line.trimEnd()); continue; }
+    if (fenced) { out.push(line); continue; }
+
     let l = line.trimEnd();
+    if (!l) {
+      // 빈 줄은 하나까지만. 지워진 제목이 남긴 구멍도 여기서 메워집니다.
+      if (!out.length || !out[out.length - 1]) continue;
+      out.push('');
+      continue;
+    }
     if (/^\s*(?:-{3,}|={3,}|\*{3,})\s*$/.test(l)) continue;             // 문단을 가르는 수평선
     const head = l.match(/^\s{0,3}#{1,6}\s*(.+?)\s*#*\s*$/);
     if (head) {
@@ -209,10 +235,10 @@ export function polish(raw: string): string {
       l = `**${label}**`;                                               // 남길 제목은 굵은 한 줄로만
     }
     l = l.replace(/^(\s*)[•‧∙]\s+/, '$1- ');                            // 불릿 기호 통일
-    if (l.trim()) l = dedupe(l);
-    if (l.trim() && l.trim() === out[out.length - 1]?.trim()) continue;  // 바로 앞 줄의 되풀이
+    l = dedupe(l);
+    if (l.trim() === out[out.length - 1]?.trim()) continue;             // 바로 앞 줄의 되풀이
     out.push(l);
   }
 
-  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return out.join('\n').trim();
 }

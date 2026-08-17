@@ -633,9 +633,9 @@ a { color: inherit; }
   line-height: 1.84;
   color: var(--ink-soft);
 }
+.share__foot { width: min(1080px, 100%); margin: clamp(30px, 5vw, 48px) auto 0; }
 .share__close {
-  width: min(1080px, 100%);
-  margin: clamp(30px, 5vw, 48px) auto 0;
+  margin: 0;
   max-width: var(--measure);
   font-size: clamp(0.95rem, 1.8vw, 1.06rem);
   line-height: 1.86;

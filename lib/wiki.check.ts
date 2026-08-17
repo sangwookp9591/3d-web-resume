@@ -149,7 +149,25 @@ for (const [dirty, want] of DIRTY) {
 // 제목이라도 내용이 있으면 지우지 않고 굵은 줄로 낮춥니다.
 assert.equal(polish('### 쿠폰 도메인\n본문입니다.'), '**쿠폰 도메인**\n본문입니다.');
 
+/* 울타리 안은 코드지 글이 아닙니다. 여기까지 다듬으면 `# 설치` 주석이 제목이 되고
+   `---`가 지워지고 들여쓰기가 펴지는데, Markdown이 울타리 안을 그대로 그리므로
+   그 손상이 그대로 화면에 나갑니다. */
+const FENCED = '설명입니다.\n```bash\n# 설치\nnpm i\n---\n  }\n}\n```';
+assert.equal(polish(FENCED), FENCED, 'polish가 코드 블록 안을 건드렸습니다');
+assert.equal(polish(polish(FENCED)), FENCED);
+// 울타리 밖의 목록은 중첩 들여쓰기를 잃지 않아야 합니다.
+assert.equal(polish('- 위\n  - 아래'), '- 위\n  - 아래');
+
+/* 2순위 조각을 권하는 줄. 낱말 한가운데서 겹쳤을 뿐인 조각은 권하지 않아야 합니다 —
+   "개발자인가요"의 '자인'이 "디자인시스템"에 걸려 소개 질문에 공통 인프라를 권했습니다. */
+// 권유 줄은 화제를 홑따옴표로 감쌉니다. 본문에도 "공통 인프라"라는 말이 나오므로
+// 권유가 붙었는지는 그 따옴표로만 봅니다.
+assert.doesNotMatch(wikiAnswer('iron은 어떤 개발자인가요?'), /‘공통 인프라와 팀 규약’/,
+  '낱말 가운데서 겹친 조각을 권하고 있습니다');
+assert.match(wikiAnswer('팀에 뭘 공유했어'), /나눠 왔나/, '이어서 볼 조각을 권하지 못했습니다');
+
 // 질의 케이스 + 근거 3 + STOP 겹침 + 태그 자기호출 + 무관 질문 3 + 금칙어 3
-//   + 답 모양(질의당 3) + polish(케이스당 2) + 제목 낮추기 1
-const CHECKS = CASES.length + 3 + STOP.size + SELF.length + 3 + 3 + SHAPE.length * 3 + DIRTY.length * 2 + 1;
+//   + 답 모양(질의당 3) + polish(케이스당 2) + 제목 낮추기 1 + 울타리 3 + 권유 2
+const CHECKS = CASES.length + 3 + STOP.size + SELF.length + 3 + 3
+  + SHAPE.length * 3 + DIRTY.length * 2 + 1 + 3 + 2;
 console.log(`wiki: ${WIKI.length} chunks, ${CHECKS} checks pass`);
