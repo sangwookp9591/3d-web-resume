@@ -27,7 +27,7 @@ const person = {
   description: PERSON.summary,
   email: `mailto:${PERSON.email}`,
   url: SITE_URL,
-  sameAs: [PERSON.github],
+  sameAs: [PERSON.github, PERSON.youtube],
   knowsAbout: PERSON.skills,
   worksFor: { '@type': 'Organization', name: PERSON.employer },
   knowsLanguage: [

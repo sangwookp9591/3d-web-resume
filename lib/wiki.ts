@@ -366,8 +366,9 @@ OpenSearch, Redis, ShedLock, Resilience4j, ArchUnit, Testcontainers, DDD/Hexagon
   {
     id: 'contact',
     title: '연락',
-    tags: '연락 메일 이메일 email contact 채용 문의 연락처 깃허브 github 이직 제안',
+    tags: '연락 메일 이메일 email contact 채용 문의 연락처 깃허브 github 이직 제안 유튜브 youtube 채널',
     text: `메일: sangwookp9591@gmail.com. GitHub: sangwookp9591.
+유튜브 채널 Ai-ng: https://www.youtube.com/@ai-ng-tech (핸들 @ai-ng-tech).
 ZIVO Medical Tourism Platform, 2025.10 – 2026.07.`,
   },
   {

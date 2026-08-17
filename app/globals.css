@@ -717,6 +717,21 @@ a { color: inherit; }
 }
 .colophon__mail:hover { color: var(--accent); border-color: var(--accent); }
 .colophon__mail:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
+.colophon__links {
+  margin: 2px 0 0;
+  display: flex;
+  gap: 18px;
+  font-size: 0.82rem;
+}
+.colophon__links a {
+  color: var(--ink-faint);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 1px;
+  transition: color 200ms ease, border-color 200ms ease;
+}
+.colophon__links a:hover { color: var(--accent); border-color: var(--accent); }
+.colophon__links a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .colophon__meta { margin: 6px 0 0; font-size: 0.8rem; color: var(--ink-faint); }
 
 /* ══ Responsive ═════════════════════════════════════════════════════════ */

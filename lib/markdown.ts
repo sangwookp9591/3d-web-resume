@@ -19,6 +19,7 @@ export function resumeMarkdown() {
 
 - 이메일: ${PERSON.email}
 - GitHub: ${PERSON.github}
+- YouTube: ${PERSON.youtube}
 - 소속: ${PERSON.employer} (${PERSON.period.start} – ${PERSON.period.end})
 - 원본: ${SITE_URL}
 
@@ -99,5 +100,6 @@ ${PRINCIPLES.map(([head]) => `- [${head}](${SITE_URL}/#principles)`).join('\n')}
 
 - 메일: ${PERSON.email}
 - GitHub: ${PERSON.github}
+- YouTube: ${PERSON.youtube}
 `;
 }
