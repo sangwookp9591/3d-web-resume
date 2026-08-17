@@ -1,0 +1,218 @@
+/* 위키에서 꺼낸 원문과 모델이 뱉은 문자열을, 채팅에 그대로 나가도 되는 말로 바꿉니다.
+
+   원문을 그대로 띄우면 답이 아니라 문서가 나갑니다 — 【제목】 아래에 여덟 문장이 통째로
+   붙고, 그중 절반은 방문자가 묻지 않은 이야기입니다. 모델 쪽은 반대 방향으로 어긋납니다.
+   작은 모델일수록 "### 요약", "자료에 따르면", 같은 문장 반복 같은 습관이 붙고,
+   사고 과정 태그가 새기도 합니다.
+
+   그래서 어느 경로로 온 답이든 화면에 닿기 전에 여기를 지납니다. 이 파일은 사실을
+   만들거나 고치지 않습니다 — 무엇을 보여줄지 고르고, 어떻게 읽힐지만 정합니다. */
+// 확장자를 붙이는 이유는 wiki.check.ts가 이 파일을 번들러 없이 node로 직접 돌리기 때문입니다.
+import { retrieve, terms, type Chunk } from './wiki.ts';
+
+/** 위키와 상관없는 질문. 없다고 말하되, 무엇을 물으면 되는지까지 알려 줍니다. */
+export const NO_MATCH =
+  '그건 이 위키에 없네요. 대신 이력이나 저장소별 기여도, 기술 스택, 일하는 방식 쪽은 답할 수 있어요.';
+
+/* ── 원문에서 답 만들기 ─────────────────────────────────────────── */
+
+/** 문장 단위로 자릅니다. 줄바꿈은 원문의 편집 흔적일 뿐이라 먼저 지웁니다.
+    마침표 뒤에 공백이 올 때만 자르므로 `0.6B`나 `방법론.md)`는 안 쪼개집니다. */
+const sentences = (text: string) =>
+  text.replace(/\s*\n\s*/g, ' ')
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+// 앞 문장을 받아야 말이 되는 시작들. 이런 문장이 답의 첫 줄로 나가면 방문자는
+// 없는 앞 문장을 찾게 됩니다.
+const NEEDS_LEAD = /^(그래서|그리고|그러나|그런데|그러자|그 결과|대신|다만|또한|또|반대로|덕분에|이렇게|여기서|거기서)/;
+
+/* 조각 전체를 묻는 질문. 검색어 매칭으로는 이런 질문에 답할 수 없습니다 — 조각의 첫
+   문장은 주제어를 되풀이하지 않기 때문입니다("쿠폰은 돈과 직결됩니다"에는 '설계'도
+   '이유'도 없습니다). 대신 이 위키의 조각이 문제 → 결정 → 결과 순으로 쓰여 있다는 사실을
+   씁니다. 왜와 누구의 답은 언제나 첫머리에 있습니다. */
+const FROM_TOP = /(왜|이유|배경|어째서|어쩌다|누구|누군|어떤 ?사람|어떤 ?개발자|소개)/;
+
+const WINDOW = 3;    // 답 한 편에 넣을 문장 수 상한
+const BUDGET = 340;  // 그리고 글자 수 상한. 말풍선 하나가 화면을 덮지 않을 만큼입니다.
+// 점수가 0인 문장을 창에 끼워 넣을 때 무는 값. 이게 없으면 창은 언제나 최대 길이로 자랍니다.
+const PADDING = -0.12;
+
+/** 질문과 가장 가까운 '이어지는 몇 문장'을 원문 그대로 잘라 옵니다.
+
+    점수가 높은 문장만 흩어 모으면 인용문 두 개를 나란히 세운 꼴이 됩니다. 실제로
+    "쿠폰을 왜 새로 설계했나"에 zonky embedded-postgres 문장이 붙었습니다 — 그 문장에
+    '쿠폰'과 '도메인'이 가장 많이 들어 있다는 이유만으로요. 위키 조각은 문제 → 결정 → 결과
+    순으로 쓰여 있으니, 붙어 있는 구간을 통째로 떠 와야 "그래서"가 무엇을 받는지가 남습니다. */
+function choose(query: string, text: string) {
+  const all = sentences(text);
+  if (!all.length) return [];
+
+  // 글자 예산 안에서 앞에서부터 몇 문장까지 담을 수 있는지.
+  const fromTop = () => {
+    let chars = 0;
+    let len = 0;
+    while (len < WINDOW && len < all.length && (len === 0 || chars + all[len].length <= BUDGET)) {
+      chars += all[len].length;
+      len++;
+    }
+    return all.slice(0, len);
+  };
+  if (FROM_TOP.test(query)) return fromTop();
+
+  const q = terms(query);
+  const score = all.map((s, i) => {
+    const t = terms(s);
+    let hit = 0;
+    for (const g of q) if (t.has(g)) hit++;
+    // 긴 문장은 그냥 더 많이 걸리므로 길이로 완만하게 누릅니다.
+    // 그리고 앞쪽에 가산점을 줍니다 — 조각의 첫머리는 대개 그 조각이 무엇에 대한
+    // 글인지를 말하는 자리라, 점수가 비슷하면 앞이 이겨야 답이 자기소개부터 시작합니다.
+    const raw = hit / Math.pow(Math.max(t.size, 1), 0.35);
+    return raw > 0 ? raw * (1 + 0.4 / (1 + i)) : 0;
+  });
+
+  let best = { at: 0, len: 0, sum: 0 };
+  for (let at = 0; at < all.length; at++) {
+    let chars = 0;
+    let sum = 0;
+    for (let len = 1; len <= WINDOW && at + len <= all.length; len++) {
+      const s = all[at + len - 1];
+      chars += s.length;
+      if (len > 1 && chars > BUDGET) break;
+      sum += score[at + len - 1] || PADDING;
+      if (sum > best.sum) best = { at, len, sum };
+    }
+  }
+  // 질문이 태그로만 걸린 경우(제목에는 있는데 본문에는 그 말이 없는 경우)입니다.
+  // 그때도 조각의 첫머리가 곧 그 조각의 요약이라 앞에서부터 씁니다.
+  if (!best.len) return fromTop();
+
+  // 접속사로 시작하는 문장이 첫 줄이 되면 앞이 잘린 것처럼 읽힙니다. 한 문장 앞에서 뜹니다.
+  if (best.at > 0 && NEEDS_LEAD.test(all[best.at])) best = { ...best, at: best.at - 1, len: best.len + 1 };
+
+  /* 한 문장만 걸리는 경우가 있습니다 — 뒤 문장들이 주제어를 되풀이하지 않을 때입니다.
+     "팀에 뭘 공유했어"에 "팀에 남긴 것은 코드만이 아닙니다."만 나가면 그건 답이 아니라
+     운을 뗀 것입니다. 너무 짧으면 뒤로 한 문장씩 더 데려옵니다. */
+  let picked = all.slice(best.at, best.at + best.len);
+  while (picked.join(' ').length < 120 && best.at + picked.length < all.length && picked.length < WINDOW) {
+    picked = all.slice(best.at, best.at + picked.length + 1);
+  }
+  return picked;
+}
+
+/** 제목에서 화제만 남깁니다.
+    'BACK — 호텔 검색·재색인 파이프라인 (OpenSearch)' → '호텔 검색·재색인 파이프라인'
+    'SYSTEM — 운영 경계: Redis 격리 · 메트릭 · 배포 계약' → '운영 경계' */
+const topicOf = (title: string) =>
+  title.split('—').pop()!.split(':')[0].replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+
+/** 받침을 보고 '로'와 '으로'를 고릅니다. 화제 이름이 매번 바뀌는 자리라
+    한쪽으로 고정해 두면 "검증로 이어집니다"가 나갑니다. */
+function ro(word: string) {
+  const last = word.codePointAt(word.length - 1) ?? 0;
+  if (last < 0xac00 || last > 0xd7a3) return '로';        // 한글이 아니면 그냥 '로'
+  const jong = (last - 0xac00) % 28;
+  return jong === 0 || jong === 8 ? '로' : '으로';        // 받침 없음 또는 ㄹ
+}
+
+// 다음 이야기로 넘기는 말. 답마다 같은 문장이 붙으면 그때부터는 읽지 않는 줄이 되므로
+// 조각별로 갈라 둡니다. 무작위가 아니라 id로 정하는 건, 같은 주제에는 늘 같은 말이
+// 붙어야 두 번 물어본 사람이 어색해하지 않기 때문입니다.
+const NUDGES = [
+  (t: string) => `옆에 ‘${t}’ 이야기도 있어요. 궁금하면 이어서 물어보세요.`,
+  (t: string) => `이 다음은 보통 ‘${t}’${ro(t)} 이어집니다. 그쪽도 물어봐 주세요.`,
+  (t: string) => `‘${t}’도 같이 보면 그림이 맞춰집니다.`,
+];
+/** 질문이 이 조각의 제목·태그를 실제로 건드렸는지. 2순위 조각은 그냥 남은 것 중
+    제일 나은 것일 뿐이라, 이 확인 없이 권하면 엉뚱한 데로 안내합니다. */
+function related(chunk: Chunk, query: Set<string>) {
+  const t = terms(`${chunk.title} ${chunk.tags}`);
+  for (const g of query) if (t.has(g)) return true;
+  return false;
+}
+
+const nudgeFor = (chunk: Chunk) => {
+  let h = 0;
+  for (const ch of chunk.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return NUDGES[h % NUDGES.length](topicOf(chunk.title));
+};
+
+/** 검색 결과를 답 한 편으로 엮습니다. 핵심 한 문장 → 필요한 근거 → 다음 이야기. */
+export function compose(query: string, hits: Chunk[]): string {
+  if (!hits.length) return NO_MATCH;
+
+  const picked = choose(query, hits[0].text);
+  if (!picked.length) return NO_MATCH;
+
+  // 첫 문장만 떼어 문단을 나눕니다. 한 덩어리로 붙여 두면 여섯 줄짜리 벽이 되고,
+  // 방문자는 첫 줄에서 답을 얻었는지 아닌지를 판단하지 못합니다.
+  const out = [picked[0]];
+  if (picked.length > 1) out.push(picked.slice(1).join(' '));
+
+  /* 다음 이야기를 권하는 건 두 조건이 다 맞을 때만입니다. 매번 같은 자리에 같은 꼴의 줄이
+     붙으면 그건 답이 아니라 서식으로 읽히고, 질문과 무관한 조각을 권하면 안 권하느니만
+     못합니다("어떤 사람이야"의 2순위는 그냥 남은 조각 중 하나일 뿐입니다). */
+  const q = terms(query);
+  const said = out.join(' ').length;
+  if (hits[1] && said < 260 && related(hits[1], q)) out.push(nudgeFor(hits[1]));
+  return out.join('\n\n');
+}
+
+/** 모델이 없을 때의 답. 근거는 모델이 받는 것과 같은 위키입니다. */
+export function wikiAnswer(query: string): string {
+  return compose(query, retrieve(query, 2));
+}
+
+/* ── 모델이 뱉은 것 다듬기 ──────────────────────────────────────── */
+
+// 내용이 없는 제목들. 세 줄짜리 답 위에 "요약"이 붙으면 답이 문서로 보입니다.
+const EMPTY_HEAD = /^(요약|정리|결론|답변|답|응답|설명|개요|배경|참고|추가 ?설명|핵심)$/;
+
+/** 한 줄 안에서 똑같은 문장이 두 번 이상 나오면 첫 번만 남깁니다.
+    작은 모델이 문장을 그대로 되풀이하며 토큰을 채우는 걸 잡습니다. */
+function dedupe(line: string) {
+  const seen = new Set<string>();
+  const kept = sentences(line).filter((s) => {
+    const key = s.replace(/\s+/g, '');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return kept.length ? kept.join(' ') : line;
+}
+
+/** 모델 출력을 채팅 말투의 마크다운으로 정리합니다.
+    스트리밍 중간에도 매 토큰마다 불리므로, 아직 안 끝난 문장을 잘라내는 일은 하지 않습니다. */
+export function polish(raw: string): string {
+  let t = (raw ?? '').replace(/\r\n/g, '\n');
+
+  // 사고 과정은 답이 아닙니다. 닫힌 블록을 먼저 걷어내고, 아직 안 닫힌 블록(=스트리밍
+  // 도중)은 뒤를 통째로 감춥니다 — 안 그러면 생각하는 동안 속엣말이 화면에 흐릅니다.
+  t = t.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  t = t.replace(/<think>[\s\S]*$/i, '');
+  t = t.replace(/<\/think>/gi, '');
+
+  // 말을 시작하기 전에 붙는 군더더기. 사람은 "답변:"이라고 말하고 답하지 않습니다.
+  t = t.replace(/^\s*(?:답변|답|응답|정답|assistant|answer|안내자|ai)\s*[:：]\s*/i, '');
+  t = t.replace(/(?:^|(?<=[.!?]\s))(?:위 |제공된 |주어진 |해당 )?자료에 (?:따르면|의하면|나와 ?있는 대로)[,:]?\s*/g, '');
+
+  const out: string[] = [];
+  for (const line of t.split('\n')) {
+    let l = line.trimEnd();
+    if (/^\s*(?:-{3,}|={3,}|\*{3,})\s*$/.test(l)) continue;             // 문단을 가르는 수평선
+    const head = l.match(/^\s{0,3}#{1,6}\s*(.+?)\s*#*\s*$/);
+    if (head) {
+      const label = head[1].replace(/[*_`]/g, '').trim();
+      if (EMPTY_HEAD.test(label)) continue;
+      l = `**${label}**`;                                               // 남길 제목은 굵은 한 줄로만
+    }
+    l = l.replace(/^(\s*)[•‧∙]\s+/, '$1- ');                            // 불릿 기호 통일
+    if (l.trim()) l = dedupe(l);
+    if (l.trim() && l.trim() === out[out.length - 1]?.trim()) continue;  // 바로 앞 줄의 되풀이
+    out.push(l);
+  }
+
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}

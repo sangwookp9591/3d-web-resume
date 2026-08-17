@@ -7,7 +7,7 @@
 
 export const STAGES = [
   'cover', 'genesis', 'immunity', 'gatehouse', 'observatory', 'vault',
-  'footprint', 'principles', 'kit', 'colophon',
+  'footprint', 'sharing', 'principles', 'kit', 'colophon',
 ];
 
 // 키는 useStage가 DOM의 [data-stage]에서 읽어 오는 값이라 타입이 좁혀지지 않습니다.
@@ -40,6 +40,10 @@ export const SCRIPT: Record<string, { motion: string; pose: string; text: string
   footprint: {
     motion: 'idle', pose: 'point_down',
     text: '저장소 세 곳에서 역할이 다 달랐어. 막대 길이는 내가 늘린 게 아니라 진짜 커밋 점유율이야.',
+  },
+  sharing: {
+    motion: 'type', pose: 'present',
+    text: 'iron은 좋은 걸 찾으면 꼭 팀에 가져와. 새 모델 나오면 요약해서, 도구가 필요하면 아예 만들어서. 나도 저기서 많이 배웠어!',
   },
   principles: {
     motion: 'idle', pose: 'read',

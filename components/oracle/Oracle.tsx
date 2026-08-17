@@ -8,6 +8,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useOracleBrain from './brain';
+import Markdown from './Markdown';
+import { polish } from '@/lib/answer';
 import type { MorphField } from './morph';
 
 type Brain = ReturnType<typeof useOracleBrain>;
@@ -243,12 +245,23 @@ export default function Oracle() {
               다시 읽지 않고, 끝난 뒤에 한 번 읽습니다. */}
           <div className="orc__log" ref={logRef} role="log" aria-live="polite" aria-busy={!!streaming}>
             {turns.length === 0
-              ? <p className="orc__hint">이력 · 저장소 · 기술 스택 · 일하는 방식에 대해 물어보세요.</p>
-              : turns.map((t, i) => (
-                  <p className={`orc__turn orc__turn--${t.role}`} key={t.id ?? i}>
-                    {t.text || <span className="orc__dots" aria-label="생각 중"><i /><i /><i /></span>}
-                  </p>
-                ))}
+              ? <p className="orc__hint">이력이든 저장소든 기술 스택이든, 궁금한 걸 그냥 물어보세요.</p>
+              : turns.map((t, i) => {
+                  if (t.role === 'you') {
+                    return <p className="orc__turn orc__turn--you" key={t.id ?? i}>{t.text}</p>;
+                  }
+                  /* 답은 마크다운으로 그립니다. 흐르는 중에도 매번 다듬는 이유는, 모델이
+                     사고 과정이나 "### 요약"을 먼저 뱉는 순간 그게 그대로 화면에 흐르기
+                     때문입니다 — 최종본에서만 고치면 방문자는 이미 다 본 뒤입니다. */
+                  const body = polish(t.text);
+                  return (
+                    <div className={`orc__turn orc__turn--aing${body ? '' : ' is-empty'}`} key={t.id ?? i}>
+                      {body
+                        ? <Markdown text={body} />
+                        : <span className="orc__dots" aria-label="생각 중"><i /><i /><i /></span>}
+                    </div>
+                  );
+                })}
           </div>
 
           <form className="orc__form" onSubmit={ask}>

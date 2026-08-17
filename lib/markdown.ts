@@ -1,7 +1,7 @@
 import { SITE_URL, PERSON } from './site';
 import { sections } from './worldConfig';
 import { WIKI } from './wiki';
-import { REPOS, PRINCIPLES } from './content';
+import { REPOS, PRINCIPLES, SHARES } from './content';
 
 /* AEO 응답 레이어의 본문. 페이지와 같은 상수에서 나오므로 화면과 마크다운이 어긋날 수
    없습니다 — 여기에만 있는 문장은 한 줄도 없습니다.
@@ -40,6 +40,13 @@ ${s.body}
 
 ${list(s.tags ?? [])}`).join('\n\n')}
 
+## 팀에 공유한 것들
+
+새 모델이 나오면 요약해서, 도구가 필요하면 만들어서, 비용이 걸리면 아끼는 법까지 붙여서 팀 채널에 올렸습니다.
+아래는 실제로 올린 글들입니다.
+
+${SHARES.map((s) => `- **${s.date} · ${s.kind}** — ${s.title}. ${s.note}`).join('\n')}
+
 ## 일하는 방식
 
 ${PRINCIPLES.map(([head, sub], i) => `${i + 1}. **${head}**\n   ${sub}`).join('\n\n')}
@@ -76,6 +83,10 @@ ${REPOS.map((r) => `- [${r.name}](${SITE_URL}/#footprint): ${r.stack}. ${r.commi
 ## 기여 사례
 
 ${sections.map((s) => `- [${s.title}](${SITE_URL}/#${s.id}): ${s.eyebrow}. ${s.body}`).join('\n')}
+
+## 팀에 공유한 것들
+
+${SHARES.map((s) => `- [${s.title}](${SITE_URL}/#sharing): ${s.date} · ${s.kind}.`).join('\n')}
 
 ## 일하는 방식
 

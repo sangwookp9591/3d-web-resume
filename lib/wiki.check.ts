@@ -1,8 +1,10 @@
 // node src/oracle/wiki.check.mjs — 검색이 엉뚱한 조각을 1순위로 올리면 실패합니다.
 import assert from 'node:assert/strict';
-import { WIKI, STOP, retrieve, lookup } from './wiki.ts';
+import { WIKI, STOP, retrieve } from './wiki.ts';
+import { wikiAnswer, polish } from './answer.ts';
 
-const CASES = [
+// 답이 하나로 정해지지 않는 질문이 있어서 기대값은 문자열이거나 후보 목록입니다.
+const CASES: [string, string | string[]][] = [
   // 개요
   ['iron은 누구야?', 'who'],
   ['어떤 개발자인가요', 'who'],
@@ -41,6 +43,12 @@ const CASES = [
   ['팀에 뭘 남겼어', 'team'],
   ['PR 자동 리뷰', 'team'],
   ['AI 어떻게 쓰나요', 'aiwork'],
+  // 공유 기록. '팀' 계열 질문은 team과 sharing 어느 쪽이 1등이어도 맞습니다 —
+  // 하나는 팀에 남긴 도구, 하나는 팀에 나눈 정보라 둘 다 답이 됩니다.
+  ['팀에 뭘 공유했어', ['team', 'sharing']],
+  ['지식 공유', ['sharing', 'team']],
+  ['토큰 절약', 'sharing'],
+  ['얼리어답터', 'sharing'],
   // 그 외
   ['일하는 방식', 'principles'],
   ['기술 스택', 'stack'],
@@ -85,14 +93,16 @@ for (const s of STOP) {
 
 /* 태그로 자기 조각을 부를 수 있어야 합니다. 위 겹침 검사가 STOP 쪽을 막는다면
    이쪽은 반대편 — 조각이 늘면서 다른 조각에 밀려 자기 태그로도 안 잡히는 경우를 봅니다. */
-for (const [q, want] of [['일하는 방식', 'principles'], ['작업 방식', 'principles'], ['팀에 공유', 'team']]) {
+const SELF = [['일하는 방식', 'principles'], ['작업 방식', 'principles'],
+  ['팀에 공유', 'team'], ['공유 기록', 'sharing'], ['최신 기술 트렌드', 'sharing']];
+for (const [q, want] of SELF) {
   const got = retrieve(q, 3).map((w) => w.id);
   assert.ok(got.includes(want), `"${q}" → ${got.join(',') || '(없음)'} (근거에 ${want}가 없습니다)`);
 }
 
 assert.equal(retrieve('짜장면 맛집').length, 0, '관련 없는 질문은 비어야 합니다');
-assert.match(lookup('짜장면 맛집'), /위키에 없네요/);
-assert.match(lookup('iron 누구'), /박상욱/);
+assert.match(wikiAnswer('짜장면 맛집'), /위키에 없네요/);
+assert.match(wikiAnswer('iron 누구'), /박상욱/);
 
 // 지어내면 안 되는 것들이 위키에 명시돼 있어야 합니다.
 const caution = WIKI.find((w) => w.id === 'caution')!.text;
@@ -100,6 +110,46 @@ for (const must of ['RAG', 'pgvector', 'nicepay']) {
   assert.ok(caution.includes(must), `사실 정확성 조각에 ${must} 언급이 없습니다`);
 }
 
-// 질의 케이스 + 근거 3개 검사 + STOP 겹침(STOP 크기만큼) + 태그 자기호출 + 무관 질문 3 + 금칙어 3
-const CHECKS = CASES.length + 3 + STOP.size + 3 + 3 + 3;
+/* ── 답의 모양 ──────────────────────────────────────────────────
+   위 검사들이 "무엇을 꺼냈는가"를 본다면 아래는 "어떻게 보이는가"를 봅니다.
+   조각을 통째로 인용하던 시절에는 이 둘이 같았지만, 지금은 answer.ts가 사이에 있습니다. */
+const flat = (s: string) => s.replace(/\s+/g, '');
+const SHAPE = ['쿠폰 왜 새로 만들었어', '권한 시스템 어떻게 설계했나요', '기술 스택', '연락처', '검색 성능 개선'];
+for (const q of SHAPE) {
+  const a = wikiAnswer(q);
+  const src = retrieve(q, 1)[0].text;
+  assert.doesNotMatch(a, /[【】]/, `"${q}"의 답에 문서 제목표가 남아 있습니다`);
+  assert.doesNotMatch(a, /^#{1,6}\s/m, `"${q}"의 답에 마크다운 제목이 있습니다`);
+  // 조각을 통째로 옮기지 않았는지. 문장이 넷을 넘는 조각이면 실제로 줄어들어야 합니다
+  // (연락처처럼 두 문장짜리 조각은 고를 것이 없으므로 그대로 나가는 게 맞습니다).
+  const total = src.split(/(?<=[.!?])\s+/).filter(Boolean).length;
+  assert.ok(total <= 4 || a.length < src.length,
+    `"${q}"의 답이 원문(${total}문장)보다 짧지 않습니다 — 고르지 않고 통째로 옮겼습니다`);
+  // 그리고 골라 온 문장은 원문에 그대로 있어야 합니다. 표현 층이 사실을 지어내면 안 됩니다.
+  for (const sent of a.split('\n\n')[0].split(/(?<=[.!?])\s+/).filter(Boolean)) {
+    assert.ok(flat(src).includes(flat(sent)), `"${q}"의 답에 원문에 없는 문장이 있습니다: ${sent}`);
+  }
+}
+
+/* polish는 모델의 습관을 걷어냅니다. 스트리밍 도중에도 매 토큰마다 불리므로
+   같은 글을 두 번 통과시켜도 결과가 변하지 않아야 합니다. */
+const DIRTY = [
+  ['<think>음, 쿠폰 얘기군.</think>쿠폰은 새 컨텍스트로 만들었습니다.', /^쿠폰은/],
+  ['<think>아직 생각 중인데', /^$/],                                    // 안 닫힌 사고 블록 = 아직 할 말 없음
+  ['### 요약\n권한은 훅 하나로 모았습니다.', /^권한은/],
+  ['답변: 자료에 따르면 커밋은 1,512개입니다.', /^커밋은 1,512개입니다\.$/],
+  ['같은 말입니다. 같은 말입니다.', /^같은 말입니다\.$/],
+  ['## 배경\n\n\n\n스택은 Next.js입니다.', /^스택은/],
+];
+for (const [dirty, want] of DIRTY) {
+  const once = polish(dirty as string);
+  assert.match(once, want as RegExp, `polish가 못 걷어냈습니다: ${dirty}`);
+  assert.equal(polish(once), once, `polish가 멱등이 아닙니다: ${dirty}`);
+}
+// 제목이라도 내용이 있으면 지우지 않고 굵은 줄로 낮춥니다.
+assert.equal(polish('### 쿠폰 도메인\n본문입니다.'), '**쿠폰 도메인**\n본문입니다.');
+
+// 질의 케이스 + 근거 3 + STOP 겹침 + 태그 자기호출 + 무관 질문 3 + 금칙어 3
+//   + 답 모양(질의당 3) + polish(케이스당 2) + 제목 낮추기 1
+const CHECKS = CASES.length + 3 + STOP.size + SELF.length + 3 + 3 + SHAPE.length * 3 + DIRTY.length * 2 + 1;
 console.log(`wiki: ${WIKI.length} chunks, ${CHECKS} checks pass`);

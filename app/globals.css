@@ -581,6 +581,72 @@ a { color: inherit; }
 .repo__role { margin: 0; font-size: 0.94rem; font-weight: 560; }
 .repo__note { margin: 4px 0 0; font-size: 0.8rem; color: var(--ink-faint); }
 
+/* ══ Sharing ════════════════════════════════════════════════════════════ */
+.share__lead {
+  margin: 14px 0 0;
+  max-width: var(--measure);
+  font-size: clamp(0.92rem, 1.7vw, 1.02rem);
+  line-height: 1.86;
+  color: var(--ink-soft);
+}
+.share__log {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  /* 항목 사이에 선 하나만 둡니다. 카드로 나누면 아홉 개가 아홉 장의 카드가 되고,
+     한 사람이 반복해 온 일이 아니라 서로 무관한 사건 아홉 건으로 읽힙니다. */
+  gap: 0;
+}
+.share__row {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  gap: clamp(14px, 2.6vw, 32px);
+  align-items: start;
+  padding: clamp(20px, 2.4vw, 26px) 0;
+  border-top: 1px solid var(--rim-low);
+}
+.share__row:last-child { border-bottom: 1px solid var(--rim-low); }
+.share__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.share__date {
+  font-family: var(--font-display);
+  font-size: 0.94rem;
+  color: color-mix(in oklab, var(--ink) 58%, var(--paper));
+  font-variant-numeric: tabular-nums;
+}
+.share__kind {
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--rim-low);
+  background: color-mix(in oklab, #ffffff 58%, transparent);
+  font-size: 0.72rem;
+  font-weight: 620;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.share__title { margin: 0; font-size: clamp(1rem, 2vw, 1.14rem); font-weight: 650; line-height: 1.5; }
+.share__note {
+  margin: 7px 0 0;
+  max-width: var(--measure);
+  font-size: 0.9rem;
+  line-height: 1.84;
+  color: var(--ink-soft);
+}
+.share__close {
+  width: min(1080px, 100%);
+  margin: clamp(30px, 5vw, 48px) auto 0;
+  max-width: var(--measure);
+  font-size: clamp(0.95rem, 1.8vw, 1.06rem);
+  line-height: 1.86;
+}
+.share__close strong { font-weight: 680; }
+
+@media (max-width: 640px) {
+  /* 좁은 화면에서 날짜 칸을 11rem으로 잡아 두면 제목이 세 글자씩 접힙니다. */
+  .share__row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+}
+
 /* ══ Principles ═════════════════════════════════════════════════════════ */
 .creed { padding: clamp(80px, 14vh, 152px) var(--gutter); }
 .creed__list {
@@ -1023,7 +1089,6 @@ a { color: inherit; }
   border-radius: 16px;
   font-size: 0.92rem;
   line-height: 1.76;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
   animation: orc-turn 320ms cubic-bezier(.2,.8,.3,1) both;
 }
@@ -1033,6 +1098,7 @@ a { color: inherit; }
   background: color-mix(in oklab, var(--ink) 88%, transparent);
   color: var(--cloud);
   border-bottom-right-radius: 5px;
+  white-space: pre-wrap;   /* 물어본 사람이 친 줄바꿈은 친 그대로 */
 }
 .orc__turn--aing {
   align-self: flex-start;
@@ -1040,6 +1106,33 @@ a { color: inherit; }
   border: 1px solid var(--rim-low);
   border-bottom-left-radius: 5px;
 }
+.orc__turn--aing.is-empty { padding: 13px 15px; }
+
+/* 답 안의 마크다운. 문단 사이는 벌리고 말풍선의 위아래 끝은 붙여야 한 덩어리로 읽힙니다.
+   여기서 여백을 안 잡으면 문단 두 개짜리 답이 브라우저 기본 margin으로 벌어져,
+   말풍선 하나가 카드 두 장처럼 보입니다. */
+.orc__turn--aing > * { margin: 0.62em 0; }
+.orc__turn--aing > :first-child { margin-top: 0; }
+.orc__turn--aing > :last-child { margin-bottom: 0; }
+.orc__turn--aing strong { font-weight: 660; }
+.orc__turn--aing a { color: inherit; text-underline-offset: 3px; }
+.orc__list { padding-left: 1.15em; display: grid; gap: 3px; }
+.orc__list li::marker { color: var(--ink-faint); }
+.orc__turn--aing code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: color-mix(in oklab, var(--ink) 8%, transparent);
+}
+.orc__pre {
+  overflow-x: auto;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--ink) 6%, transparent);
+  border: 1px solid var(--rim-low);
+}
+.orc__pre code { background: none; padding: 0; font-size: 0.84em; line-height: 1.6; }
 
 .orc__form {
   display: flex;

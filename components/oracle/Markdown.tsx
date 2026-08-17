@@ -1,0 +1,101 @@
+/* 채팅 말풍선 안의 마크다운. 라이브러리를 붙이지 않는 이유는 여기서 필요한 문법이
+   문단·목록·강조·코드·링크가 전부이고, 그걸 위해 파서 하나를 통째로 들이면 이 페이지가
+   지키는 초기 번들 예산이 답 하나 예쁘게 그리자고 무너지기 때문입니다.
+
+   HTML 문자열을 만들지 않고 React 엘리먼트로 바로 짓습니다 — dangerouslySetInnerHTML이
+   없으면 모델이 무엇을 뱉든 태그로 살아날 길이 없습니다.
+
+   스트리밍 중에는 언제나 문장이 끊긴 상태로 들어옵니다. 닫히지 않은 울타리나 짝이 안 맞는
+   `**`를 만나도 그냥 글자로 흘려보내고, 다음 토큰에서 저절로 맞춰지게 둡니다. */
+import { Fragment, type ReactNode } from 'react';
+
+const UL = /^\s*[-*]\s+/;
+const OL = /^\s*\d+[.)]\s+/;
+const FENCE = /^\s*```/;
+
+// 굵게 · 기울임 · 코드 · 링크 · 맨 URL · 메일 주소. 순서가 곧 우선순위라 `**`가 `*`보다 앞입니다.
+// `_기울임_`은 일부러 뺐습니다 — 이력에 나오는 파일명(E2E_테스트_설계_방법론.md)이 통째로 기웁니다.
+const INLINE =
+  /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]\n]+\]\([^)\s]+\)|https?:\/\/[^\s<)]+|[\w.+-]+@[\w-]+\.[\w.-]+)/g;
+
+// 모델이 만들어 낸 주소를 그대로 믿지 않습니다. 이 두 스킴이 아니면 링크가 아니라 글자입니다.
+const SAFE = /^(https?:|mailto:)/i;
+
+function link(href: string, label: string, key: number): ReactNode {
+  if (!SAFE.test(href)) return <span key={key}>{label}</span>;
+  const external = !href.toLowerCase().startsWith('mailto:');
+  return (
+    <a key={key} href={href} {...(external && { target: '_blank', rel: 'noreferrer noopener' })}>
+      {label}
+    </a>
+  );
+}
+
+function inline(text: string): ReactNode[] {
+  const out: ReactNode[] = [];
+  let last = 0;
+  let key = 0;
+  for (const m of text.matchAll(INLINE)) {
+    const tok = m[0];
+    const at = m.index;
+    if (at > last) out.push(text.slice(last, at));
+    last = at + tok.length;
+
+    if (tok.startsWith('**')) out.push(<strong key={key++}>{tok.slice(2, -2)}</strong>);
+    else if (tok.startsWith('*')) out.push(<em key={key++}>{tok.slice(1, -1)}</em>);
+    else if (tok.startsWith('`')) out.push(<code key={key++}>{tok.slice(1, -1)}</code>);
+    else if (tok.startsWith('[')) {
+      const [, label, href] = tok.match(/\[([^\]]+)\]\(([^)\s]+)\)/)!;
+      out.push(link(href, label, key++));
+    } else out.push(link(tok.includes('@') ? `mailto:${tok}` : tok, tok, key++));
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
+export default function Markdown({ text }: { text: string }) {
+  const lines = text.split('\n');
+  const nodes: ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+
+  while (i < lines.length) {
+    if (!lines[i].trim()) { i++; continue; }
+
+    if (FENCE.test(lines[i])) {
+      const body: string[] = [];
+      i++;
+      while (i < lines.length && !FENCE.test(lines[i])) body.push(lines[i++]);
+      i++;   // 닫는 울타리. 스트리밍 도중이면 아직 없을 수도 있는데, 그때는 여기서 끝입니다.
+      nodes.push(<pre className="orc__pre" key={key++}><code>{body.join('\n')}</code></pre>);
+      continue;
+    }
+
+    if (UL.test(lines[i]) || OL.test(lines[i])) {
+      const ordered = OL.test(lines[i]);
+      const mark = ordered ? OL : UL;
+      const items: string[] = [];
+      while (i < lines.length && mark.test(lines[i])) items.push(lines[i++].replace(mark, ''));
+      const List = ordered ? 'ol' : 'ul';
+      nodes.push(
+        <List className="orc__list" key={key++}>
+          {items.map((t, n) => <li key={n}>{inline(t)}</li>)}
+        </List>,
+      );
+      continue;
+    }
+
+    // 문단: 빈 줄이나 다음 블록이 시작될 때까지. 문단 안의 줄바꿈은 줄바꿈으로 둡니다.
+    const para: string[] = [];
+    while (i < lines.length && lines[i].trim() && !UL.test(lines[i]) && !OL.test(lines[i]) && !FENCE.test(lines[i])) {
+      para.push(lines[i++]);
+    }
+    nodes.push(
+      <p key={key++}>
+        {para.map((t, n) => <Fragment key={n}>{n > 0 && <br />}{inline(t)}</Fragment>)}
+      </p>,
+    );
+  }
+
+  return <>{nodes}</>;
+}
