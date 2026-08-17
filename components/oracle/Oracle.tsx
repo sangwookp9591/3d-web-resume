@@ -255,10 +255,11 @@ export default function Oracle() {
                   if (t.role === 'you') {
                     return <p className="orc__turn orc__turn--you" key={t.id ?? i}>{t.text}</p>;
                   }
-                  /* 답은 마크다운으로 그립니다. 흐르는 중에도 매번 다듬는 이유는, 모델이
-                     사고 과정이나 "### 요약"을 먼저 뱉는 순간 그게 그대로 화면에 흐르기
-                     때문입니다 — 최종본에서만 고치면 방문자는 이미 다 본 뒤입니다. */
-                  const body = polish(t.text);
+                  /* 흐르는 중에만 다듬습니다. 모델이 사고 과정이나 "### 요약"을 먼저 뱉는
+                     순간 그게 그대로 화면에 흐르므로 실시간으로 걷어내야 하지만, 끝난 답은
+                     brain.say()가 이미 다듬어 저장한 것이라 다시 통과시켜도 같은 글자입니다.
+                     로그 전체를 토큰마다 다시 다듬을 이유가 없습니다. */
+                  const body = t.pending ? polish(t.text) : t.text;
                   return (
                     <div className={`orc__turn orc__turn--aing${body ? '' : ' is-empty'}`} key={t.id ?? i}>
                       {body

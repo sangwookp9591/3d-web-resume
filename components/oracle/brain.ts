@@ -7,7 +7,7 @@
    어느 쪽이든 근거는 같은 위키이고, 질문은 밖으로 나가지 않습니다. */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { retrieve } from '@/lib/wiki';
-import { compose, polish, wikiAnswer } from '@/lib/answer';
+import { compose, polish, NO_MATCH } from '@/lib/answer';
 import { DEFAULT_MODEL, byId } from './models';
 import type { WorkerRequest, WorkerResponse } from './llm.worker';
 
@@ -118,6 +118,7 @@ export default function useOracleBrain() {
   const [progress, setProgress] = useState(0);
   const [model, setModel] = useState(DEFAULT_MODEL);
   const ollamaRef = useRef<string | null>(null);
+  const probe = useRef<Promise<void> | null>(null);   // Ollama 탐지가 끝났는지
   const workerRef = useRef<Worker | null>(null);
   const pending = useRef(new Map<string, PendingAsk>());
 
@@ -161,7 +162,7 @@ export default function useOracleBrain() {
      방문자가 수백 MB를 다시 받습니다 — 그러고는 쓰지도 않습니다. */
   useEffect(() => {
     let dead = false;
-    findOllama().then((m) => {
+    probe.current = findOllama().then((m) => {
       if (dead || !m) return;
       ollamaRef.current = m;
       setEngine('ollama');
@@ -178,8 +179,12 @@ export default function useOracleBrain() {
      지금은 창을 열거나 입력칸에 손을 댈 때 시작합니다. 그 사이의 질문은 위키가 바로
      답하므로(brain.ask의 폴백) 기다리는 시간이 생기지도 않습니다. */
   const warm = useCallback(() => {
-    if (ollamaRef.current || workerRef.current || !mayDownload()) return;
-    enableModel(DEFAULT_MODEL.id);
+    // 탐지가 끝나기를 기다렸다가 정합니다(최대 900ms). 안 기다리면 Ollama가 도는
+    // 컴퓨터에서 바로 창을 연 사람이 570MB를 받아 놓고 쓰지도 않습니다.
+    void (probe.current ?? Promise.resolve()).then(() => {
+      if (ollamaRef.current || workerRef.current || !mayDownload()) return;
+      enableModel(DEFAULT_MODEL.id);
+    });
   }, [enableModel]);
 
   // 실패했으면 워커를 버리고 다시 시도할 수 있게 합니다 — 안 그러면 localStorage를
@@ -196,7 +201,7 @@ export default function useOracleBrain() {
   /** 질문 하나. onToken이 오면 스트리밍, 반환값은 언제나 최종본입니다. */
   const ask = useCallback(async (question: string, onToken: (piece: string) => void = () => {}) => {
     const hits = retrieve(question, 3);
-    if (!hits.length) return wikiAnswer(question);  // 위키와 무관한 질문은 모델을 깨울 것도 없습니다
+    if (!hits.length) return NO_MATCH;   // 위키와 무관한 질문은 모델을 깨울 것도 없습니다
     const ctx = hits.map((h) => `[${h.title}]\n${h.text}`).join('\n\n');
     /* 모델이 없거나 답하지 못했을 때의 답. 조각을 통째로 인용하지 않고 질문에 걸린 문장만
        골라 엮습니다 — 이 경로로 답을 받는 방문자가 오히려 더 많기 때문입니다(WebGPU 없는 브라우저). */

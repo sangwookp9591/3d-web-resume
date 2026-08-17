@@ -1,4 +1,4 @@
-import { SHARES } from '@/lib/content';
+import { SHARES, SHARES_LEAD, isoDate } from '@/lib/content';
 
 /* 공유 로그. 저장소 발자국이 "무엇을 만들었나"라면 이쪽은 "무엇을 남겼나"입니다.
    앞 섹션들과 마찬가지로 글은 전부 서버가 그리고, JS는 한 줄도 없습니다. */
@@ -8,20 +8,17 @@ export default function Sharing() {
       <div className="slab__head">
         <p className="eyebrow">Sharing Log</p>
         <h2 className="slab__title">좋은 걸 찾으면 혼자 안 씁니다</h2>
-        <p className="share__lead">
-          새 모델이 나오면 요약해서, 도구가 필요하면 만들어서, 비용이 걸리면 아끼는 법까지 붙여서
-          팀 채널에 올렸습니다. 아래는 실제로 올린 글들입니다.
-        </p>
+        <p className="share__lead">{SHARES_LEAD}</p>
       </div>
 
       <ol className="share__log">
         {SHARES.map((s) => (
           <li className="share__row" key={s.date + s.title}>
             <div className="share__meta">
-              <time className="share__date" dateTime={s.date.replace(/\./g, '-')}>{s.date}</time>
+              <time className="share__date" dateTime={isoDate(s.date)}>{s.date}</time>
               <span className="share__kind">{s.kind}</span>
             </div>
-            <div className="share__say">
+            <div>
               <h3 className="share__title">{s.title}</h3>
               <p className="share__note">{s.note}</p>
             </div>

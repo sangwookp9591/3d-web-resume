@@ -8,7 +8,7 @@
    그래서 어느 경로로 온 답이든 화면에 닿기 전에 여기를 지납니다. 이 파일은 사실을
    만들거나 고치지 않습니다 — 무엇을 보여줄지 고르고, 어떻게 읽힐지만 정합니다. */
 // 확장자를 붙이는 이유는 wiki.check.ts가 이 파일을 번들러 없이 node로 직접 돌리기 때문입니다.
-import { retrieve, terms, plainWords, type Chunk } from './wiki.ts';
+import { retrieve, terms, wordHeads, type Chunk } from './wiki.ts';
 
 /** 위키와 상관없는 질문. 없다고 말하되, 무엇을 물으면 되는지까지 알려 줍니다. */
 export const NO_MATCH =
@@ -17,8 +17,10 @@ export const NO_MATCH =
 /* ── 원문에서 답 만들기 ─────────────────────────────────────────── */
 
 /** 문장 단위로 자릅니다. 줄바꿈은 원문의 편집 흔적일 뿐이라 먼저 지웁니다.
-    마침표 뒤에 공백이 올 때만 자르므로 `0.6B`나 `방법론.md)`는 안 쪼개집니다. */
-const sentences = (text: string) =>
+    마침표 뒤에 공백이 올 때만 자르므로 `0.6B`나 `방법론.md)`는 안 쪼개집니다.
+    검증 하네스가 답을 문장으로 세는 데도 같은 규칙을 씁니다 — 다른 규칙으로 세면
+    "몇 문장이 나갔는가"를 실제와 다르게 재게 됩니다. */
+export const sentences = (text: string) =>
   text.replace(/\s*\n\s*/g, ' ')
     .split(/(?<=[.!?])\s+/)
     .map((s) => s.trim())
@@ -35,9 +37,15 @@ const NEEDS_LEAD = /^(그래서|그리고|그러나|그런데|그러자|그 결�
 const FROM_TOP = /(왜|이유|배경|어째서|어쩌다|누구|누군|어떤 ?사람|어떤 ?개발자|소개)/;
 
 const WINDOW = 3;    // 답 한 편에 넣을 문장 수 상한
-const BUDGET = 340;  // 그리고 글자 수 상한. 말풍선 하나가 화면을 덮지 않을 만큼입니다.
+// 글자 수 상한. 말풍선 하나가 화면을 덮지 않을 만큼이고, 그 말풍선의 실제 크기는
+// app/globals.css의 .orc__turn이 정합니다 — 판을 크게 고치면 이 값도 같이 보세요.
+const BUDGET = 340;
 // 점수가 0인 문장을 창에 끼워 넣을 때 무는 값. 이게 없으면 창은 언제나 최대 길이로 자랍니다.
 const PADDING = -0.12;
+// 이보다 짧으면 답이 아니라 운을 뗀 것으로 봅니다.
+const FLOOR = 120;
+// 이보다 길면 다음 이야기를 권하지 않습니다 — 이미 할 말을 다 했습니다.
+const ENOUGH = 260;
 
 /** 질문과 가장 가까운 '이어지는 몇 문장'을 원문 그대로 잘라 옵니다.
 
@@ -90,14 +98,14 @@ function choose(query: string, text: string) {
   if (!best.len) return fromTop();
 
   // 접속사로 시작하는 문장이 첫 줄이 되면 앞이 잘린 것처럼 읽힙니다. 한 문장 앞에서 뜹니다.
-  if (best.at > 0 && NEEDS_LEAD.test(all[best.at])) best = { ...best, at: best.at - 1, len: best.len + 1 };
+  if (best.at > 0 && NEEDS_LEAD.test(all[best.at])) { best.at--; best.len++; }
 
   /* 한 문장만 걸리는 경우가 있습니다 — 뒤 문장들이 주제어를 되풀이하지 않을 때입니다.
      "팀에 뭘 공유했어"에 "팀에 남긴 것은 코드만이 아닙니다."만 나가면 그건 답이 아니라
      운을 뗀 것입니다. 너무 짧으면 뒤로 한 문장씩 더 데려옵니다. */
-  let picked = all.slice(best.at, best.at + best.len);
-  while (picked.join(' ').length < 120 && best.at + picked.length < all.length && picked.length < WINDOW) {
-    picked = all.slice(best.at, best.at + picked.length + 1);
+  const picked = all.slice(best.at, best.at + best.len);
+  while (picked.join(' ').length < FLOOR && best.at + picked.length < all.length && picked.length < WINDOW) {
+    picked.push(all[best.at + picked.length]);
   }
   return picked;
 }
@@ -135,9 +143,8 @@ const NUDGES = [
     앞을 나눠 가지므로("공유했어" / "공유기록"), 머리를 공유하면 같은 말이고 가운데서
     겹치면 대개 우연입니다. */
 function related(chunk: Chunk, query: string) {
-  const heads = (s: string) => [...plainWords(s)];
-  const asked = heads(query);
-  const has = heads(`${chunk.title} ${chunk.tags}`);
+  const asked = wordHeads(query);
+  const has = wordHeads(`${chunk.title} ${chunk.tags}`);
   for (const g of terms(query)) {
     if (!asked.some((w) => w.startsWith(g))) continue;
     if (has.some((w) => w.startsWith(g))) return true;
@@ -167,7 +174,7 @@ export function compose(query: string, hits: Chunk[]): string {
      붙으면 그건 답이 아니라 서식으로 읽히고, 질문과 무관한 조각을 권하면 안 권하느니만
      못합니다("어떤 사람이야"의 2순위는 그냥 남은 조각 중 하나일 뿐입니다). */
   const said = out.join(' ').length;
-  if (hits[1] && said < 260 && related(hits[1], query)) out.push(nudgeFor(hits[1]));
+  if (hits[1] && said < ENOUGH && related(hits[1], query)) out.push(nudgeFor(hits[1]));
   return out.join('\n\n');
 }
 
@@ -180,6 +187,10 @@ export function wikiAnswer(query: string): string {
 
 // 내용이 없는 제목들. 세 줄짜리 답 위에 "요약"이 붙으면 답이 문서로 보입니다.
 const EMPTY_HEAD = /^(요약|정리|결론|답변|답|응답|설명|개요|배경|참고|추가 ?설명|핵심)$/;
+
+/** 코드 울타리. polish는 이 안을 건드리지 않고 Markdown은 이 안을 그대로 그립니다 —
+    두 쪽이 같은 것을 울타리로 봐야 하므로 정의는 여기 하나뿐입니다. */
+export const FENCE = /^\s*```/;
 
 /** 한 줄 안에서 똑같은 문장이 두 번 이상 나오면 첫 번만 남깁니다.
     작은 모델이 문장을 그대로 되풀이하며 토큰을 채우는 걸 잡습니다. */
@@ -217,7 +228,7 @@ export function polish(raw: string): string {
     /* 울타리 안은 글이 아니라 코드입니다. 아래 규칙을 그대로 먹이면 `# 설치` 주석이
        굵은 제목이 되고, `---`가 수평선으로 지워지고, 들여쓰기가 펴집니다.
        Markdown.tsx는 울타리 안을 있는 그대로 그리므로 그 손상이 그대로 화면에 나갑니다. */
-    if (/^\s*```/.test(line)) { fenced = !fenced; out.push(line.trimEnd()); continue; }
+    if (FENCE.test(line)) { fenced = !fenced; out.push(line.trimEnd()); continue; }
     if (fenced) { out.push(line); continue; }
 
     let l = line.trimEnd();

@@ -7,11 +7,15 @@
 
    스트리밍 중에는 언제나 문장이 끊긴 상태로 들어옵니다. 닫히지 않은 울타리나 짝이 안 맞는
    `**`를 만나도 그냥 글자로 흘려보내고, 다음 토큰에서 저절로 맞춰지게 둡니다. */
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, memo, type ReactNode } from 'react';
+import { FENCE } from '@/lib/answer';
 
 const UL = /^\s*[-*]\s+/;
 const OL = /^\s*\d+[.)]\s+/;
-const FENCE = /^\s*```/;
+
+/** 문단이 아니라 블록이 시작되는 줄인가. 여는 쪽과 닫는 쪽에서 두 번 따로 물으면,
+    블록 종류를 하나 더할 때 한쪽만 고치고 끝내게 됩니다. */
+const isBlock = (l: string) => UL.test(l) || OL.test(l) || FENCE.test(l);
 
 /* 굵게 · 기울임 · 코드 · 링크 · 맨 URL · 메일 주소. 순서가 곧 우선순위라 `**`가 `*`보다 앞입니다.
    `_기울임_`은 일부러 뺐습니다 — 이력에 나오는 파일명(E2E_테스트_설계_방법론.md)이 통째로 기웁니다.
@@ -20,7 +24,7 @@ const FENCE = /^\s*```/;
    처럼 마침표로 끝나는데, 그 마침표까지 물면 받는 사람이 없는 메일 창이 열립니다.
    그래서 URL은 부호로 끝나지 못하게 하고, 메일은 마지막 마디에 점을 허용하지 않습니다. */
 const INLINE =
-  /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]\n]+\]\([^)\s]+\)|https?:\/\/[^\s<)]*[^\s<).,;:!?]|[\w.+-]+@[\w-]+(?:\.[\w-]+)+)/g;
+  /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[([^\]\n]+)\]\(([^)\s]+)\)|https?:\/\/[^\s<)]*[^\s<).,;:!?]|[\w.+-]+@[\w-]+(?:\.[\w-]+)+)/g;
 
 // 모델이 만들어 낸 주소를 그대로 믿지 않습니다. 이 두 스킴이 아니면 링크가 아니라 글자입니다.
 const SAFE = /^(https?:|mailto:)/i;
@@ -48,10 +52,9 @@ function inline(text: string): ReactNode[] {
     if (tok.startsWith('**')) out.push(<strong key={key++}>{tok.slice(2, -2)}</strong>);
     else if (tok.startsWith('*')) out.push(<em key={key++}>{tok.slice(1, -1)}</em>);
     else if (tok.startsWith('`')) out.push(<code key={key++}>{tok.slice(1, -1)}</code>);
-    else if (tok.startsWith('[')) {
-      const [, label, href] = tok.match(/\[([^\]]+)\]\(([^)\s]+)\)/)!;
-      out.push(link(href, label, key++));
-    }
+    // 링크는 INLINE이 이미 라벨과 주소를 따로 잡아 뒀습니다. 여기서 다시 쪼개면
+    // 같은 문법이 두 벌이 되고, 둘이 어긋나는 날 non-null 단언이 터집니다.
+    else if (tok.startsWith('[')) out.push(link(m[3], m[2], key++));
     // 어느 갈래로 잡혔는지로 가릅니다. @가 들어 있는지로 가르면 경로에 @가 붙은 주소가
     // (https://github.com/@iron) mailto로 넘어가 죽은 링크가 됩니다.
     else if (/^https?:/i.test(tok)) out.push(link(tok, tok, key++));
@@ -61,7 +64,10 @@ function inline(text: string): ReactNode[] {
   return out;
 }
 
-export default function Markdown({ text }: { text: string }) {
+/* memo: 답이 흐르는 동안 로그는 토큰마다 다시 그려집니다. 이미 끝난 말풍선까지 매번
+   다시 파싱하고 React가 그 엘리먼트를 다시 맞춰 볼 이유가 없습니다 — 같은 문자열이면
+   지나갑니다. 그 사이 메인 스레드는 파티클 장을 60fps로 돌리고 있습니다. */
+function Markdown({ text }: { text: string }) {
   const lines = text.split('\n');
   const nodes: ReactNode[] = [];
   let i = 0;
@@ -79,7 +85,7 @@ export default function Markdown({ text }: { text: string }) {
       continue;
     }
 
-    if (UL.test(lines[i]) || OL.test(lines[i])) {
+    if (UL.test(lines[i]) || OL.test(lines[i])) {   // FENCE는 바로 위에서 걸렀습니다
       const ordered = OL.test(lines[i]);
       const mark = ordered ? OL : UL;
       const items: string[] = [];
@@ -95,9 +101,7 @@ export default function Markdown({ text }: { text: string }) {
 
     // 문단: 빈 줄이나 다음 블록이 시작될 때까지. 문단 안의 줄바꿈은 줄바꿈으로 둡니다.
     const para: string[] = [];
-    while (i < lines.length && lines[i].trim() && !UL.test(lines[i]) && !OL.test(lines[i]) && !FENCE.test(lines[i])) {
-      para.push(lines[i++]);
-    }
+    while (i < lines.length && lines[i].trim() && !isBlock(lines[i])) para.push(lines[i++]);
     nodes.push(
       <p key={key++}>
         {para.map((t, n) => <Fragment key={n}>{n > 0 && <br />}{inline(t)}</Fragment>)}
@@ -107,3 +111,5 @@ export default function Markdown({ text }: { text: string }) {
 
   return <>{nodes}</>;
 }
+
+export default memo(Markdown);

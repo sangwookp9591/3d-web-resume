@@ -1,7 +1,17 @@
-// node src/oracle/wiki.check.mjs — 검색이 엉뚱한 조각을 1순위로 올리면 실패합니다.
+// node lib/wiki.check.ts — 검색이 엉뚱한 조각을 1순위로 올리면 실패합니다.
 import assert from 'node:assert/strict';
 import { WIKI, STOP, retrieve } from './wiki.ts';
-import { wikiAnswer, polish } from './answer.ts';
+import { wikiAnswer, polish, sentences } from './answer.ts';
+
+/* 통과한 검사 수는 세어서 냅니다. 손으로 더하던 식은 항이 열한 개까지 늘면서 틀렸습니다 —
+   SHAPE 블록 안의 문장별 반복을 빼먹어 실제 125건을 120건이라고 적고 있었습니다.
+   이 숫자는 하네스가 스스로에 대해 말하는 유일한 값이라, 틀리면 없느니만 못합니다. */
+let CHECKS = 0;
+// 메시지에 기본값을 두는 이유는 node:assert의 오버로드가 undefined를 안 받기 때문입니다.
+const ok = (cond: unknown, msg = '검사 실패') => { CHECKS++; assert.ok(cond, msg); };
+const eq = (a: unknown, b: unknown, msg = '값이 다릅니다') => { CHECKS++; assert.equal(a, b, msg); };
+const match = (v: string, re: RegExp, msg = '패턴에 안 맞습니다') => { CHECKS++; assert.match(v, re, msg); };
+const noMatch = (v: string, re: RegExp, msg = '있으면 안 되는 패턴입니다') => { CHECKS++; assert.doesNotMatch(v, re, msg); };
 
 // 답이 하나로 정해지지 않는 질문이 있어서 기대값은 문자열이거나 후보 목록입니다.
 const CASES: [string, string | string[]][] = [
@@ -70,13 +80,12 @@ const CASES: [string, string | string[]][] = [
 
 for (const [q, want] of CASES) {
   const got = retrieve(q).map((w) => w.id);
-  const ok = Array.isArray(want) ? want.includes(got[0]) : got[0] === want;
-  assert.ok(ok, `"${q}" → ${got.join(',')} (기대: ${want})`);
+  ok([want].flat().includes(got[0]), `"${q}" → ${got.join(',')} (기대: ${want})`);
 }
 
 // 세부 조각이 상위 3개 안에는 반드시 들어와야 합니다 — LLM이 받는 근거가 그 3개입니다.
 for (const [q, want] of [['쿠폰 정합성', 'coupon'], ['재색인 느려', 'search'], ['권한 누락', 'perm']]) {
-  assert.ok(retrieve(q, 3).some((w) => w.id === want), `"${q}"의 근거에 ${want}가 없습니다`);
+  ok(retrieve(q, 3).some((w) => w.id === want), `"${q}"의 근거에 ${want}가 없습니다`);
 }
 
 /* STOP에 넣은 말이 어느 조각의 태그에도 없어야 합니다.
@@ -88,7 +97,7 @@ const tagWords = new Set(
   WIKI.flatMap((w) => w.tags.toLowerCase().split(/[^a-z0-9가-힣]+/).filter((t) => t.length > 1))
 );
 for (const s of STOP) {
-  assert.ok(!tagWords.has(s), `STOP의 "${s}"가 어느 조각의 태그에 있습니다 — 그 태그는 검색되지 않습니다`);
+  ok(!tagWords.has(s), `STOP의 "${s}"가 어느 조각의 태그에 있습니다 — 그 태그는 검색되지 않습니다`);
 }
 
 /* 태그로 자기 조각을 부를 수 있어야 합니다. 위 겹침 검사가 STOP 쪽을 막는다면
@@ -97,17 +106,17 @@ const SELF = [['일하는 방식', 'principles'], ['작업 방식', 'principles'
   ['팀에 공유', 'team'], ['공유 기록', 'sharing'], ['최신 기술 트렌드', 'sharing']];
 for (const [q, want] of SELF) {
   const got = retrieve(q, 3).map((w) => w.id);
-  assert.ok(got.includes(want), `"${q}" → ${got.join(',') || '(없음)'} (근거에 ${want}가 없습니다)`);
+  ok(got.includes(want), `"${q}" → ${got.join(',') || '(없음)'} (근거에 ${want}가 없습니다)`);
 }
 
-assert.equal(retrieve('짜장면 맛집').length, 0, '관련 없는 질문은 비어야 합니다');
-assert.match(wikiAnswer('짜장면 맛집'), /위키에 없네요/);
-assert.match(wikiAnswer('iron 누구'), /박상욱/);
+eq(retrieve('짜장면 맛집').length, 0, '관련 없는 질문은 비어야 합니다');
+match(wikiAnswer('짜장면 맛집'), /위키에 없네요/);
+match(wikiAnswer('iron 누구'), /박상욱/);
 
 // 지어내면 안 되는 것들이 위키에 명시돼 있어야 합니다.
 const caution = WIKI.find((w) => w.id === 'caution')!.text;
 for (const must of ['RAG', 'pgvector', 'nicepay']) {
-  assert.ok(caution.includes(must), `사실 정확성 조각에 ${must} 언급이 없습니다`);
+  ok(caution.includes(must), `사실 정확성 조각에 ${must} 언급이 없습니다`);
 }
 
 /* ── 답의 모양 ──────────────────────────────────────────────────
@@ -118,22 +127,22 @@ const SHAPE = ['쿠폰 왜 새로 만들었어', '권한 시스템 어떻게 설
 for (const q of SHAPE) {
   const a = wikiAnswer(q);
   const src = retrieve(q, 1)[0].text;
-  assert.doesNotMatch(a, /[【】]/, `"${q}"의 답에 문서 제목표가 남아 있습니다`);
-  assert.doesNotMatch(a, /^#{1,6}\s/m, `"${q}"의 답에 마크다운 제목이 있습니다`);
+  noMatch(a, /[【】]/, `"${q}"의 답에 문서 제목표가 남아 있습니다`);
+  noMatch(a, /^#{1,6}\s/m, `"${q}"의 답에 마크다운 제목이 있습니다`);
   // 조각을 통째로 옮기지 않았는지. 문장이 넷을 넘는 조각이면 실제로 줄어들어야 합니다
   // (연락처처럼 두 문장짜리 조각은 고를 것이 없으므로 그대로 나가는 게 맞습니다).
-  const total = src.split(/(?<=[.!?])\s+/).filter(Boolean).length;
-  assert.ok(total <= 4 || a.length < src.length,
+  const total = sentences(src).length;
+  ok(total <= 4 || a.length < src.length,
     `"${q}"의 답이 원문(${total}문장)보다 짧지 않습니다 — 고르지 않고 통째로 옮겼습니다`);
   // 그리고 골라 온 문장은 원문에 그대로 있어야 합니다. 표현 층이 사실을 지어내면 안 됩니다.
-  for (const sent of a.split('\n\n')[0].split(/(?<=[.!?])\s+/).filter(Boolean)) {
-    assert.ok(flat(src).includes(flat(sent)), `"${q}"의 답에 원문에 없는 문장이 있습니다: ${sent}`);
+  for (const sent of sentences(a.split('\n\n')[0])) {
+    ok(flat(src).includes(flat(sent)), `"${q}"의 답에 원문에 없는 문장이 있습니다: ${sent}`);
   }
 }
 
 /* polish는 모델의 습관을 걷어냅니다. 스트리밍 도중에도 매 토큰마다 불리므로
    같은 글을 두 번 통과시켜도 결과가 변하지 않아야 합니다. */
-const DIRTY = [
+const DIRTY: [string, RegExp][] = [
   ['<think>음, 쿠폰 얘기군.</think>쿠폰은 새 컨텍스트로 만들었습니다.', /^쿠폰은/],
   ['<think>아직 생각 중인데', /^$/],                                    // 안 닫힌 사고 블록 = 아직 할 말 없음
   ['### 요약\n권한은 훅 하나로 모았습니다.', /^권한은/],
@@ -142,32 +151,28 @@ const DIRTY = [
   ['## 배경\n\n\n\n스택은 Next.js입니다.', /^스택은/],
 ];
 for (const [dirty, want] of DIRTY) {
-  const once = polish(dirty as string);
-  assert.match(once, want as RegExp, `polish가 못 걷어냈습니다: ${dirty}`);
-  assert.equal(polish(once), once, `polish가 멱등이 아닙니다: ${dirty}`);
+  const once = polish(dirty);
+  match(once, want, `polish가 못 걷어냈습니다: ${dirty}`);
+  eq(polish(once), once, `polish가 멱등이 아닙니다: ${dirty}`);
 }
 // 제목이라도 내용이 있으면 지우지 않고 굵은 줄로 낮춥니다.
-assert.equal(polish('### 쿠폰 도메인\n본문입니다.'), '**쿠폰 도메인**\n본문입니다.');
+eq(polish('### 쿠폰 도메인\n본문입니다.'), '**쿠폰 도메인**\n본문입니다.');
 
 /* 울타리 안은 코드지 글이 아닙니다. 여기까지 다듬으면 `# 설치` 주석이 제목이 되고
    `---`가 지워지고 들여쓰기가 펴지는데, Markdown이 울타리 안을 그대로 그리므로
    그 손상이 그대로 화면에 나갑니다. */
 const FENCED = '설명입니다.\n```bash\n# 설치\nnpm i\n---\n  }\n}\n```';
-assert.equal(polish(FENCED), FENCED, 'polish가 코드 블록 안을 건드렸습니다');
-assert.equal(polish(polish(FENCED)), FENCED);
+eq(polish(FENCED), FENCED, 'polish가 코드 블록 안을 건드렸습니다');
+eq(polish(polish(FENCED)), FENCED);
 // 울타리 밖의 목록은 중첩 들여쓰기를 잃지 않아야 합니다.
-assert.equal(polish('- 위\n  - 아래'), '- 위\n  - 아래');
+eq(polish('- 위\n  - 아래'), '- 위\n  - 아래');
 
 /* 2순위 조각을 권하는 줄. 낱말 한가운데서 겹쳤을 뿐인 조각은 권하지 않아야 합니다 —
    "개발자인가요"의 '자인'이 "디자인시스템"에 걸려 소개 질문에 공통 인프라를 권했습니다. */
 // 권유 줄은 화제를 홑따옴표로 감쌉니다. 본문에도 "공통 인프라"라는 말이 나오므로
 // 권유가 붙었는지는 그 따옴표로만 봅니다.
-assert.doesNotMatch(wikiAnswer('iron은 어떤 개발자인가요?'), /‘공통 인프라와 팀 규약’/,
+noMatch(wikiAnswer('iron은 어떤 개발자인가요?'), /‘공통 인프라와 팀 규약’/,
   '낱말 가운데서 겹친 조각을 권하고 있습니다');
-assert.match(wikiAnswer('팀에 뭘 공유했어'), /나눠 왔나/, '이어서 볼 조각을 권하지 못했습니다');
+match(wikiAnswer('팀에 뭘 공유했어'), /나눠 왔나/, '이어서 볼 조각을 권하지 못했습니다');
 
-// 질의 케이스 + 근거 3 + STOP 겹침 + 태그 자기호출 + 무관 질문 3 + 금칙어 3
-//   + 답 모양(질의당 3) + polish(케이스당 2) + 제목 낮추기 1 + 울타리 3 + 권유 2
-const CHECKS = CASES.length + 3 + STOP.size + SELF.length + 3 + 3
-  + SHAPE.length * 3 + DIRTY.length * 2 + 1 + 3 + 2;
 console.log(`wiki: ${WIKI.length} chunks, ${CHECKS} checks pass`);

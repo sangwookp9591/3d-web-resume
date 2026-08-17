@@ -544,7 +544,12 @@ a { color: inherit; }
   line-height: 1.32;
 }
 
-.repos { width: min(1080px, 100%); margin: 0 auto; padding: 0; list-style: none; display: grid; gap: 14px; }
+/* 같은 폭·같은 자리에 놓이는 섹션 목록 둘. 간격만 다릅니다. */
+.repos, .share__log { width: min(1080px, 100%); margin: 0 auto; padding: 0; list-style: none; display: grid; }
+.repos { gap: 14px; }
+/* 공유 기록은 항목 사이에 선 하나만 둡니다. 카드로 나누면 아홉 개가 아홉 장의 카드가 되고,
+   한 사람이 반복해 온 일이 아니라 서로 무관한 사건 아홉 건으로 읽힙니다(선은 .share__row). */
+.share__log { gap: 0; }
 
 .repo {
   display: grid;
@@ -610,16 +615,6 @@ a { color: inherit; }
   line-height: 1.86;
   color: var(--ink-soft);
 }
-.share__log {
-  width: min(1080px, 100%);
-  margin: 0 auto;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  /* 항목 사이에 선 하나만 둡니다. 카드로 나누면 아홉 개가 아홉 장의 카드가 되고,
-     한 사람이 반복해 온 일이 아니라 서로 무관한 사건 아홉 건으로 읽힙니다. */
-  gap: 0;
-}
 .share__row {
   display: grid;
   grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
@@ -662,11 +657,6 @@ a { color: inherit; }
   line-height: 1.86;
 }
 .share__close strong { font-weight: 680; }
-
-@media (max-width: 640px) {
-  /* 좁은 화면에서 날짜 칸을 11rem으로 잡아 두면 제목이 세 글자씩 접힙니다. */
-  .share__row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
-}
 
 /* ══ Principles ═════════════════════════════════════════════════════════ */
 .creed { padding: clamp(80px, 14vh, 152px) var(--gutter); }
@@ -747,7 +737,9 @@ a { color: inherit; }
   .cue { flex-wrap: wrap; gap: 10px; }
   .cue__text { white-space: normal; flex: 1 1 10rem; }
   .cue__rule { display: none; }
-  .creed__item { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  /* 좁은 화면에서 왼쪽 칸(번호·날짜)을 붙잡고 있으면 제목이 세 글자씩 접힙니다.
+     두 목록이 같은 이유로 같은 모양이 되므로 한 줄로 씁니다. */
+  .creed__item, .share__row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .creed__head, .creed__sub { grid-column: 1; }
 }
 

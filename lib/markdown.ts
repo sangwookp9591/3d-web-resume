@@ -1,7 +1,7 @@
 import { SITE_URL, PERSON } from './site';
 import { sections } from './worldConfig';
 import { WIKI } from './wiki';
-import { REPOS, PRINCIPLES, SHARES } from './content';
+import { REPOS, PRINCIPLES, SHARES, SHARES_LEAD } from './content';
 
 /* AEO 응답 레이어의 본문. 페이지와 같은 상수에서 나오므로 화면과 마크다운이 어긋날 수
    없습니다 — 여기에만 있는 문장은 한 줄도 없습니다.
@@ -42,8 +42,7 @@ ${list(s.tags ?? [])}`).join('\n\n')}
 
 ## 팀에 공유한 것들
 
-새 모델이 나오면 요약해서, 도구가 필요하면 만들어서, 비용이 걸리면 아끼는 법까지 붙여서 팀 채널에 올렸습니다.
-아래는 실제로 올린 글들입니다.
+${SHARES_LEAD}
 
 ${SHARES.map((s) => `- **${s.date} · ${s.kind}** — ${s.title}. ${s.note}`).join('\n')}
 
