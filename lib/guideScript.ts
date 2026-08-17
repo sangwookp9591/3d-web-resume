@@ -7,7 +7,7 @@
 
 export const STAGES = [
   'cover', 'genesis', 'immunity', 'gatehouse', 'observatory', 'vault',
-  'footprint', 'sharing', 'principles', 'kit', 'colophon',
+  'footprint', 'media', 'sharing', 'principles', 'kit', 'colophon',
 ];
 
 // 키는 useStage가 DOM의 [data-stage]에서 읽어 오는 값이라 타입이 좁혀지지 않습니다.
@@ -41,13 +41,17 @@ export const SCRIPT: Record<string, { motion: string; pose: string; text: string
     motion: 'idle', pose: 'point_down',
     text: '저장소 세 곳에서 역할이 다 달랐어. 막대 길이는 내가 늘린 게 아니라 진짜 커밋 점유율이야.',
   },
+  media: {
+    motion: 'idle', pose: 'coding',
+    text: '여긴 ZIVO 오기 전 이야기야. 영상 올리고 자르고 내보내는 걸 4년째 하고 있대. 저 앱 화면은 진짜로 만든 거고!',
+  },
   sharing: {
     motion: 'type', pose: 'present',
-    text: 'iron은 좋은 걸 찾으면 꼭 팀에 가져와. 새 모델 나오면 요약해서, 도구가 필요하면 아예 만들어서. 나도 저기서 많이 배웠어!',
+    text: 'iron은 좋은 걸 찾으면 꼭 팀에 가져와. 링크만 던지는 게 아니라 자기가 먼저 써 보고 올려. 나도 저기서 많이 배웠어!',
   },
   principles: {
     motion: 'idle', pose: 'read',
-    text: 'iron이 일하는 방식 세 가지야. 난 첫 번째가 제일 좋아 — 규칙은 사람 기억이 아니라 도구가 지키는 거래.',
+    text: 'iron이 일하는 방식 세 가지야. 난 첫 번째가 제일 좋아. 규칙은 문서에 적어 두는 것보다 도구에 넣는 게 낫대.',
   },
   kit: {
     motion: 'celebrate', pose: 'celebrate',

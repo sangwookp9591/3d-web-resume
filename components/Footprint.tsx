@@ -6,7 +6,6 @@ export default function Footprint() {
   return (
     <section className="slab" id="footprint" data-stage="footprint">
       <div className="slab__head">
-        <p className="eyebrow">Repository Footprint</p>
         <h2 className="slab__title">세 저장소에서 역할은 각각 달랐습니다</h2>
       </div>
       <ul className="repos">

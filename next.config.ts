@@ -27,8 +27,11 @@ const csp = [
   "font-src 'self' https://cdn.jsdelivr.net",
   "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
   "worker-src 'self' blob:",
-  // 모델 가중치(huggingface.co → hf.co CDN 리다이렉트)와 로컬 Ollama.
-  "connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co http://localhost:11434",
+  /* 모델 가중치(huggingface.co → hf.co CDN 리다이렉트)와 로컬 Ollama.
+     blob:이 반드시 있어야 합니다. worker-src에만 넣어 두면 워커는 뜨지만, onnxruntime-web이
+     그 워커 안에서 wasm과 가중치를 blob: URL로 다시 fetch하는 순간 connect-src에 걸립니다.
+     증상이 조용합니다 — 화면은 멀쩡하고 콘솔에만 남으며, 방문자는 그냥 위키 답만 받습니다. */
+  "connect-src 'self' blob: https://huggingface.co https://*.huggingface.co https://*.hf.co http://localhost:11434",
 ].join('; ');
 
 /* 나중에 무언가를 붙일 때 여기를 먼저 보세요. Vercel Analytics·Speed Insights처럼 스크립트를

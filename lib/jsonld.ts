@@ -1,6 +1,6 @@
 import { SITE_URL, PERSON } from './site';
 import { sections } from './worldConfig';
-import { REPOS, SHARES, isoDate } from './content';
+import { REPOS, SHARES, MEDIA_WORK, isoDate } from './content';
 
 /* 구조화 데이터. 규칙 하나만 지킵니다 — 여기 적는 것은 전부 페이지에 실제로 보이는 글이어야
    합니다. 위키(lib/wiki.js)는 화면에 없으므로 FAQ로 올리지 않고 마크다운 레이어(/iron.md,
@@ -66,6 +66,17 @@ const shares = itemList('sharing-log', '팀에 공유한 것들', SHARES, (s) =>
   author: { '@id': abs('/#person') },
 }));
 
+// 영상·오디오. Media가 화면에 그리는 그 목록 그대로입니다.
+const media = itemList('media-work', '영상 · 오디오 작업', MEDIA_WORK, (w) => ({
+  '@type': 'CreativeWork',
+  name: w.title,
+  description: w.note,
+  about: w.where,
+  temporalCoverage: w.when.replace(/\s/g, ''),
+  url: abs('/#media'),
+  author: { '@id': abs('/#person') },
+}));
+
 /* FAQ는 답이 페이지에 실제로 보이는 것만 올립니다 — 이게 Schema.org FAQPage의 조건이고,
    보이지 않는 답을 올리는 건 그냥 스팸입니다. 아래 넷의 답은 전부 World/Footprint가
    서버에서 그리는 문장 그대로입니다. */
@@ -106,6 +117,7 @@ export function buildJsonLd() {
       person,
       contributions,
       repositories,
+      media,
       shares,
       faq,
     ],

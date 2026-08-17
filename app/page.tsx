@@ -1,6 +1,7 @@
 import Cover from '@/components/Cover';
 import World from '@/components/World';
 import Footprint from '@/components/Footprint';
+import Media from '@/components/Media';
 import Sharing from '@/components/Sharing';
 import Principles from '@/components/Principles';
 import CharacterKit from '@/components/CharacterKit';
@@ -29,6 +30,7 @@ export default function Page() {
       <main id="main">
         <World />
         <Footprint />
+        <Media />
         <Sharing />
         <Principles />
         <CharacterKit />

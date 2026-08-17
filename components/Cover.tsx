@@ -14,14 +14,16 @@ export default function Cover() {
       <div className="cover__stage">
         <div className="plate plate--name">
           <p className="plate__kicker">박상욱 · iron</p>
+          {/* 줄바꿈은 두 번까지입니다. 세 줄이 되면 이름 판이 검색창 자리를 넘어
+              화면 밖으로 밀려 올라갑니다(1440×900에서 73px이 잘렸습니다). */}
           <h1 className="plate__title">
-            제품을 만들고,<br />
-            <span className="plate__title-mark">팀의 작업 방식</span>을<br />
-            설계하는 개발자.
+            웹도 서버도 만들고,<br />
+            <span className="plate__title-mark">팀이 일하는 방식</span>도 만듭니다.
           </h1>
           <p className="plate__body">
-            의료관광 플랫폼에서 9개월. 웹은 혼자 만들었고, 어드민에서는 공통 기반을 맡았고,
-            백엔드에서는 커밋이 가장 많았습니다. 어떻게 그렇게 됐는지는 아래 창에 물어보세요.
+            의료관광 플랫폼 ZIVO에서 9개월 일했습니다. 웹은 혼자 만들었고, 어드민에서는 공통
+            기반을 맡았고, 백엔드에서는 커밋이 제일 많았습니다. 나머지가 궁금하면 아래 창에
+            물어보세요.
           </p>
         </div>
 

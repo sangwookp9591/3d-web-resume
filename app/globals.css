@@ -93,13 +93,10 @@ a { color: inherit; }
    없고, :focus-visible은 브라우저 휴리스틱이라 포커스를 받고도 안 나타나는 경우가 있습니다. */
 .skip:focus { transform: none; outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.eyebrow {
-  margin: 0;
-  font-size: clamp(0.84rem, 1.5vw, 0.96rem);
-  letter-spacing: 0.01em;
-  color: var(--ink-faint);
-}
-.eyebrow--center { text-align: center; }
+/* 섹션 제목 위에 있던 영문 라벨(.eyebrow)은 걷어냈습니다. "Sharing Log" 위의
+   "좋은 걸 찾으면 혼자 안 씁니다"처럼, 라벨이 제목을 한 번 더 말하고 있었을 뿐입니다.
+   여정 안의 장면 라벨(.px-copy__eyebrow)은 남깁니다 — 그쪽은 FRONT/ADMIN/BACK이라는,
+   제목에 없는 정보입니다. */
 
 /* Plain sections sit above the engine's fixed sky layer. The cover is open sky;
    the reading sections rest on a cloud deck — a frosted sheet that keeps long
@@ -303,8 +300,10 @@ a { color: inherit; }
   --px: 0; --py: 0;
   min-height: 100svh;
   /* 상하 대칭이어야 stage 한복판이 곧 화면 한복판입니다. 아잉의 자리(하단)는
-     스크롤 큐를 흐름 밖으로 빼서 확보합니다. */
-  padding: clamp(48px, 7vh, 84px) var(--gutter);
+     스크롤 큐를 흐름 밖으로 빼서 확보합니다.
+     세로 여백은 vh에 묶습니다 — 이름 판이 쓸 수 있는 높이가 화면 절반뿐이라,
+     낮은 화면에서 여기서 먹는 84px이 그대로 제목 잘림이 됩니다. */
+  padding: clamp(22px, 4.4vh, 72px) var(--gutter);
   display: grid;
   grid-template-rows: 1fr;
   isolation: isolate;
@@ -362,24 +361,28 @@ a { color: inherit; }
     0 26px 60px -34px var(--cast);
 }
 
+/* 아래 네 값은 전부 vw와 svh 중 작은 쪽을 씁니다. 이름 판은 검색창 위, 그러니까 화면
+   높이의 절반 안에서만 살 수 있는데 vw만 보고 크기를 정하면 넓고 낮은 노트북에서
+   판이 그 절반을 넘습니다. 실제로 1440×900에서 73px, 1280×800에서 120px이 화면 위로
+   잘려 나가고 있었습니다(overflow:clip이라 소리 없이). */
 .plate--name {
-  padding: clamp(28px, 4.4vw, 52px);
+  padding: clamp(20px, min(4.4vw, 3.4svh), 44px);
   max-width: 46rem;
   transform: translate3d(calc(var(--px) * 16px), calc(var(--py) * 12px), 0);
 }
 
 .plate__kicker {
-  margin: 0 0 clamp(16px, 2.4vw, 26px);
+  margin: 0 0 clamp(10px, min(2.4vw, 1.5svh), 22px);
   font-size: 0.92rem;
   letter-spacing: 0.01em;
   color: var(--ink-faint);
 }
 
 .plate__title {
-  margin: 0 0 clamp(20px, 3vw, 30px);
-  font-size: clamp(2rem, 6.2vw, 3.7rem);
+  margin: 0 0 clamp(12px, min(3vw, 1.9svh), 28px);
+  font-size: clamp(1.9rem, min(6.2vw, 4.7svh), 3.4rem);
   font-weight: 700;
-  line-height: 1.18;
+  line-height: 1.14;
   letter-spacing: -0.028em;
 }
 /* emphasis by weight + a drawn rule, never by italics */
@@ -395,7 +398,7 @@ a { color: inherit; }
   margin: 0;
   max-width: var(--measure);
   font-size: clamp(0.95rem, 1.7vw, 1.06rem);
-  line-height: 1.82;
+  line-height: 1.68;
   color: var(--ink-soft);
 }
 
@@ -491,7 +494,9 @@ a { color: inherit; }
 .aing__cat img {
   width: 86%; height: 86%;
   object-fit: contain;
-  animation: pop 460ms cubic-bezier(.2,1.5,.4,1);
+  /* 곡선과 키프레임 양쪽이 오버슈트하면 두 번 튕깁니다(예전 곡선은 제어점이 1.5였습니다).
+     넘어서는 건 키프레임의 1.04 한 번이고, 곡선은 지수 감속만 맡습니다. */
+  animation: pop 460ms cubic-bezier(.16,1,.3,1);
 }
 
 @keyframes pop {
@@ -542,11 +547,11 @@ a { color: inherit; }
 }
 
 /* 같은 폭·같은 자리에 놓이는 섹션 목록 둘. 간격만 다릅니다. */
-.repos, .share__log { width: min(1080px, 100%); margin: 0 auto; padding: 0; list-style: none; display: grid; }
+.repos, .share__log, .media__log { width: min(1080px, 100%); margin: 0 auto; padding: 0; list-style: none; display: grid; }
 .repos { gap: 14px; }
 /* 공유 기록은 항목 사이에 선 하나만 둡니다. 카드로 나누면 아홉 개가 아홉 장의 카드가 되고,
    한 사람이 반복해 온 일이 아니라 서로 무관한 사건 아홉 건으로 읽힙니다(선은 .share__row). */
-.share__log { gap: 0; }
+.share__log, .media__log { gap: 0; }
 
 .repo {
   display: grid;
@@ -604,15 +609,17 @@ a { color: inherit; }
 .repo__role { margin: 0; font-size: 0.94rem; font-weight: 560; }
 .repo__note { margin: 4px 0 0; font-size: 0.8rem; color: var(--ink-faint); }
 
-/* ══ Sharing ════════════════════════════════════════════════════════════ */
-.share__lead {
+/* ══ Sharing · Media ════════════════════════════════════════════════════
+   두 섹션은 같은 모양의 목록입니다(왼쪽에 언제·무엇, 오른쪽에 제목과 설명, 사이에 선 하나).
+   같은 그림을 두 벌 정의하면 한쪽만 고쳐질 것이므로 선택자만 넓힙니다. */
+.share__lead, .media__lead {
   margin: 14px 0 0;
   max-width: var(--measure);
   font-size: clamp(0.92rem, 1.7vw, 1.02rem);
   line-height: 1.86;
   color: var(--ink-soft);
 }
-.share__row {
+.share__row, .media__row {
   display: grid;
   grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
   gap: clamp(14px, 2.6vw, 32px);
@@ -620,15 +627,15 @@ a { color: inherit; }
   padding: clamp(20px, 2.4vw, 26px) 0;
   border-top: 1px solid var(--rim-low);
 }
-.share__row:last-child { border-bottom: 1px solid var(--rim-low); }
-.share__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.share__date {
+.share__row:last-child, .media__row:last-child { border-bottom: 1px solid var(--rim-low); }
+.share__meta, .media__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.share__date, .media__when {
   font-family: var(--font-display);
   font-size: 0.94rem;
   color: color-mix(in oklab, var(--ink) 58%, var(--paper));
   font-variant-numeric: tabular-nums;
 }
-.share__kind {
+.share__kind, .media__where {
   padding: 2px 9px;
   border-radius: 999px;
   border: 1px solid var(--rim-low);
@@ -638,8 +645,8 @@ a { color: inherit; }
   color: var(--ink-soft);
   white-space: nowrap;
 }
-.share__title { margin: 0; font-size: clamp(1rem, 2vw, 1.14rem); font-weight: 650; line-height: 1.5; }
-.share__note {
+.share__title, .media__title { margin: 0; font-size: clamp(1rem, 2vw, 1.14rem); font-weight: 650; line-height: 1.5; }
+.share__note, .media__note {
   margin: 7px 0 0;
   max-width: var(--measure);
   font-size: 0.9rem;
@@ -655,8 +662,99 @@ a { color: inherit; }
 }
 .share__close strong { font-weight: 680; }
 
+/* ══ Media ══════════════════════════════════════════════════════════════
+   목록 부분은 위 Sharing 규칙을 그대로 물려받고, 여기서는 화면 두 장과 파이프라인만
+   정의합니다. */
+/* 화면 두 장을 1080px 폭에 그냥 놓으면 높이가 1,000px을 넘어 섹션이 스크린샷 전시가
+   됩니다. 파이프라인을 옆에 세워 폭을 나누면 사진은 근거 크기로 내려앉고, 오른쪽의
+   빈 자리도 없어집니다. */
+.media__stage {
+  width: min(1080px, 100%);
+  margin: 0 auto clamp(34px, 5vw, 56px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.78fr);
+  gap: clamp(24px, 3.6vw, 48px);
+  align-items: start;
+}
+.media__frames {
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(14px, 2.4vw, 28px);
+}
+/* flex-basis:0 + 가로세로비 flex-grow(컴포넌트가 인라인으로 줍니다) = 두 장의 높이가 일치.
+   min-width:0이 없으면 이미지의 고유 폭이 바닥이 되어 좁은 화면에서 넘칩니다. */
+.media__frame { flex-basis: 0; min-width: 0; margin: 0; }
+.media__shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  border: 1px solid var(--rim-low);
+  box-shadow: 0 18px 44px -30px var(--cast);
+}
+.media__cap {
+  display: block;
+  margin: 10px 2px 0;
+  font-size: 0.8rem;
+  line-height: 1.7;
+  color: var(--ink-faint);
+}
+
+/* 넓은 화면에서는 사진 옆에 세로로 섭니다. 단계 사이의 연결선도 같이 방향을 바꿉니다. */
+.media__flow {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(9px, 1.4vw, 14px);
+}
+.media__step {
+  padding: 7px 15px;
+  border-radius: 999px;
+  border: 1px solid var(--rim-low);
+  background: color-mix(in oklab, #ffffff 58%, transparent);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+/* 단계 사이는 그려진 1px 선입니다. "→" 글자를 넣으면 스크린리더가 읽고, 폰트마다
+   모양과 세로 위치가 달라집니다(그리고 이 사이트에는 아이콘 세트가 따로 없습니다). */
+.media__step + .media__step::before {
+  content: '';
+  display: block;
+  width: 1px;
+  height: clamp(9px, 1.4vw, 14px);
+  margin: calc(-1 * clamp(9px, 1.4vw, 14px)) 0 0 22px;
+  background: color-mix(in oklab, var(--ink) 26%, transparent);
+}
+
+/* 한 칸으로 접혀도 파이프라인은 세로 그대로입니다. 가로로 눕히면 줄바꿈이 일어나고,
+   그러면 연결선이 알약 안쪽에 그려지거나 줄 첫 칸에 꼬리처럼 남습니다. */
+@media (max-width: 860px) {
+  .media__stage { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 620px) {
+  /* 두 장을 나란히 두면 350px을 235:115로 나눠 앱 화면이 안 읽힙니다. 이 섹션의 근거는
+     "실제로 만든 앱"이라 읽히는 크기가 곧 근거입니다. 그래서 폭을 다 주고 세로로 쌓습니다.
+     display:block이면 컴포넌트가 준 인라인 flex-grow는 그냥 무시됩니다. */
+  .media__frames { display: block; }
+  .media__frame + .media__frame { margin-top: clamp(18px, 4vw, 26px); }
+  .media__cap { font-size: 0.78rem; }
+}
+
 /* ══ Principles ═════════════════════════════════════════════════════════ */
 .creed { padding: clamp(80px, 14vh, 152px) var(--gutter); }
+.creed__title {
+  width: min(940px, 100%);
+  margin: 0 auto;
+  text-align: center;
+  font-size: clamp(1.5rem, 4vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.32;
+}
 .creed__list {
   width: min(940px, 100%);
   margin: clamp(38px, 6vw, 62px) auto 0;
@@ -751,8 +849,14 @@ a { color: inherit; }
   .cue__rule { display: none; }
   /* 좁은 화면에서 왼쪽 칸(번호·날짜)을 붙잡고 있으면 제목이 세 글자씩 접힙니다.
      두 목록이 같은 이유로 같은 모양이 되므로 한 줄로 씁니다. */
-  .creed__item, .share__row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .creed__item, .share__row, .media__row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .creed__head, .creed__sub { grid-column: 1; }
+}
+/* 큐를 104px 올리는 건 아잉이 세로로 쌓일 자리를 비우려는 것인데, 화면이 낮으면 그 104px이
+   수치 판 안으로 들어가 숫자 위에 글자가 겹쳐 찍힙니다(360×640에서 98%와 440 위를 지나갔습니다).
+   내려 봐야 말풍선과 겹치므로, 이 크기에서는 큐를 뺍니다. 스크롤하라는 말은 아잉이 합니다. */
+@media (max-width: 620px) and (max-height: 700px) {
+  .cue { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

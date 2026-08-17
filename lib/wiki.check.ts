@@ -103,14 +103,18 @@ for (const s of STOP) {
 /* 태그로 자기 조각을 부를 수 있어야 합니다. 위 겹침 검사가 STOP 쪽을 막는다면
    이쪽은 반대편 — 조각이 늘면서 다른 조각에 밀려 자기 태그로도 안 잡히는 경우를 봅니다. */
 const SELF = [['일하는 방식', 'principles'], ['작업 방식', 'principles'],
-  ['팀에 공유', 'team'], ['공유 기록', 'sharing'], ['최신 기술 트렌드', 'sharing']];
+  ['팀에 공유', 'team'], ['공유 기록', 'sharing'], ['최신 기술 트렌드', 'sharing'],
+  ['이전 경력', 'career'], ['총 경력 몇 년', 'career'], ['예전 회사', 'career'],
+  ['영상 다뤄봤어', 'media'], ['ffmpeg', 'media'], ['숏폼', 'media']];
 for (const [q, want] of SELF) {
   const got = retrieve(q, 3).map((w) => w.id);
   ok(got.includes(want), `"${q}" → ${got.join(',') || '(없음)'} (근거에 ${want}가 없습니다)`);
 }
 
-eq(retrieve('짜장면 맛집').length, 0, '관련 없는 질문은 비어야 합니다');
-match(wikiAnswer('짜장면 맛집'), /위키에 없네요/);
+/* 예전에는 '짜장면 맛집'이었는데 이력에 여기가게(숏폼 맛집 서비스)가 들어오면서
+   '맛집'이 진짜로 있는 말이 됐습니다. 위키에 없는 낱말로만 물어야 하는 검사입니다. */
+eq(retrieve('고양이 키우는 법').length, 0, '관련 없는 질문은 비어야 합니다');
+match(wikiAnswer('고양이 키우는 법'), /위키에 없네요/);
 match(wikiAnswer('iron 누구'), /박상욱/);
 
 // 지어내면 안 되는 것들이 위키에 명시돼 있어야 합니다.
