@@ -50,7 +50,6 @@ export default function CharacterKit() {
   return (
     <section className="kit" id="aing" data-stage="kit">
       <div className="kit__head">
-        <p className="eyebrow">Ai-ng · 캐릭터 킷</p>
         <h2 className="kit__title">여기까지 안내한 고양이는, 쓸 수 있는 에셋입니다</h2>
         <p className="kit__lead">
           표정과 액션을 시트로 뽑고, 모션은 알파 애니메이션으로, 형태는 3D 모델로 만들었습니다.

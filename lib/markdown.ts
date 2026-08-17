@@ -1,7 +1,7 @@
 import { SITE_URL, PERSON } from './site';
 import { sections } from './worldConfig';
 import { WIKI } from './wiki';
-import { REPOS, PRINCIPLES, SHARES, SHARES_LEAD } from './content';
+import { REPOS, PRINCIPLES, SHARES, SHARES_LEAD, MEDIA_LEAD, MEDIA_WORK, PIPELINE } from './content';
 
 /* AEO 응답 레이어의 본문. 페이지와 같은 상수에서 나오므로 화면과 마크다운이 어긋날 수
    없습니다 — 여기에만 있는 문장은 한 줄도 없습니다.
@@ -40,6 +40,14 @@ ${sections.map((s, i) => `### ${i + 1}. ${s.title}
 ${s.body}
 
 ${list(s.tags ?? [])}`).join('\n\n')}
+
+## 영상 · 오디오 (2022 – 2026)
+
+${MEDIA_LEAD}
+
+업로드 파이프라인: ${PIPELINE.join(' → ')}
+
+${MEDIA_WORK.map((w) => `- **${w.when} · ${w.where}** — ${w.title}. ${w.note}`).join('\n')}
 
 ## 팀에 공유한 것들
 
@@ -83,6 +91,10 @@ ${REPOS.map((r) => `- [${r.name}](${SITE_URL}/#footprint): ${r.stack}. ${r.commi
 ## 기여 사례
 
 ${sections.map((s) => `- [${s.title}](${SITE_URL}/#${s.id}): ${s.eyebrow}. ${s.body}`).join('\n')}
+
+## 영상 · 오디오
+
+${MEDIA_WORK.map((w) => `- [${w.title}](${SITE_URL}/#media): ${w.when} · ${w.where}.`).join('\n')}
 
 ## 팀에 공유한 것들
 
