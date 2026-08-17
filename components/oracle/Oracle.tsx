@@ -108,10 +108,15 @@ export default function Oracle() {
     return () => removeEventListener('scroll', on);
   }, []);
 
+  // 모델은 방문자가 물어볼 뜻을 보인 다음에 받습니다(brain.warm). 창을 여는 것과
+  // 입력칸에 손을 대는 것이 그 신호입니다 — 스크롤만 하다 나가는 사람은 아무것도 안 받습니다.
+  const warm = brain.warm;
+
   const grow = useCallback(() => {
+    warm();
     setOpen(true);
     scrollTo({ top: 0, behavior: 'smooth' });   // 창은 화면 중앙에 있으니 세계도 처음으로
-  }, []);
+  }, [warm]);
 
   const shrink = useCallback(() => {
     setOpen(false);
@@ -270,6 +275,7 @@ export default function Oracle() {
               className="orc__input"
               value={q}
               onChange={(e) => setQ(e.target.value)}
+              onFocus={warm}
               placeholder="무엇이 궁금한가요?"
               aria-label="질문"
               tabIndex={open ? 0 : -1}

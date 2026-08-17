@@ -26,7 +26,7 @@ export default function Page() {
       />
       <div className="sky" aria-hidden="true" />
       <Cover />
-      <main>
+      <main id="main">
         <World />
         <Footprint />
         <Sharing />

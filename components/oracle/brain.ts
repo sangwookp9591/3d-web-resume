@@ -98,6 +98,20 @@ async function askOllama(
   return out;
 }
 
+/** 이 방문자에게 570MB를 받자고 해도 되는가. */
+function mayDownload() {
+  // 세션은 파일을 다 받은 뒤에야 만들어집니다. 가드가 없으면 실행할 수도 없는 모델을
+  // 끝까지 받고 나서 죽습니다.
+  if (!navigator.gpu) return false;
+  // 아끼겠다고 말한 방문자에게는 묻지 않고 아낍니다. 데이터 세이버, 느린 회선,
+  // 그리고 CSS 쪽의 같은 뜻(prefers-reduced-data) 셋 다 봅니다.
+  const net = (navigator as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  if (net?.saveData) return false;
+  if (net?.effectiveType && /^(slow-2g|2g|3g)$/.test(net.effectiveType)) return false;
+  if (matchMedia('(prefers-reduced-data: reduce)').matches) return false;
+  return true;
+}
+
 export default function useOracleBrain() {
   const [engine, setEngine] = useState<Engine>('wiki');   // wiki | ollama | local
   const [status, setStatus] = useState<Status>('idle');   // idle | loading | ready | error
@@ -142,27 +156,30 @@ export default function useOracleBrain() {
     spawn().postMessage({ type: 'load', model: spec.id } satisfies WorkerRequest);
   }, [spawn]);
 
-  /* Ollama 탐지가 끝난 다음에야 모델을 올릴지 정합니다. 탐지는 비동기라서
-     마운트 시점에 ollamaRef를 읽으면 언제나 비어 있고, 그대로 두면 Ollama가 도는
-     컴퓨터에서도 재방문자가 수백 MB를 다시 받습니다 — 그러고는 쓰지도 않습니다. */
+  /* Ollama가 이 컴퓨터에 있으면 내려받을 것이 없습니다. 탐지는 비동기라서 마운트 시점에
+     ollamaRef를 읽으면 언제나 비어 있고, 그대로 두면 Ollama가 도는 컴퓨터에서도
+     방문자가 수백 MB를 다시 받습니다 — 그러고는 쓰지도 않습니다. */
   useEffect(() => {
     let dead = false;
     findOllama().then((m) => {
-      if (dead) return;
-      if (m) {
-        ollamaRef.current = m;
-        setEngine('ollama');
-        setStatus('ready');
-        return;
-      }
-      /* Ollama가 없으면 브라우저 모델을 묻지 않고 바로 내려받습니다. 두 번째 방문부터는
-         브라우저 캐시에서 올라옵니다.
-         WebGPU가 없는 브라우저는 걸러냅니다 — 세션은 파일을 다 받은 뒤에야 만들어지므로,
-         가드가 없으면 실행할 수도 없는 모델 570MB를 끝까지 받고 나서 죽습니다. */
-      if (!navigator.gpu || workerRef.current) return;
-      enableModel(DEFAULT_MODEL.id);
+      if (dead || !m) return;
+      ollamaRef.current = m;
+      setEngine('ollama');
+      setStatus('ready');
     }).catch((err) => console.warn('[oracle] 엔진 탐지 실패:', err));
     return () => { dead = true; };
+  }, []);
+
+  /* 방문자가 물어볼 뜻을 보였을 때 받기 시작합니다.
+
+     예전에는 진입 즉시 받았습니다. 버튼을 하나 없앤다고 기다림이 줄지 않는다는 이유였는데,
+     그건 창을 여는 사람 기준의 계산이었습니다. 대다수 방문자는 이력서만 읽고 나가고,
+     그 사람들에게 570MB는 통째로 낭비입니다 — 모바일 데이터라면 낭비가 아니라 피해입니다.
+     지금은 창을 열거나 입력칸에 손을 댈 때 시작합니다. 그 사이의 질문은 위키가 바로
+     답하므로(brain.ask의 폴백) 기다리는 시간이 생기지도 않습니다. */
+  const warm = useCallback(() => {
+    if (ollamaRef.current || workerRef.current || !mayDownload()) return;
+    enableModel(DEFAULT_MODEL.id);
   }, [enableModel]);
 
   // 실패했으면 워커를 버리고 다시 시도할 수 있게 합니다 — 안 그러면 localStorage를
@@ -228,6 +245,7 @@ export default function useOracleBrain() {
     status,
     progress,
     model,
+    warm,
     retryModel,
     ask,
   };

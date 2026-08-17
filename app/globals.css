@@ -72,6 +72,27 @@ h1, h2, h3 { font-style: normal; text-wrap: balance; overflow-wrap: anywhere; mi
 img { max-width: 100%; height: auto; }
 a { color: inherit; }
 
+/* 키보드로 처음 탭을 눌렀을 때만 나타나는 건너뛰기 링크. display:none이 아니라 화면
+   밖으로 밀어야 포커스를 받을 수 있습니다 — 감춘 요소는 탭 순서에서도 빠집니다. */
+.skip {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--rim-low);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 16px));
+}
+/* :focus-visible이 아니라 :focus입니다. 이 링크는 화면 밖이라 키보드 말고는 닿을 길이
+   없고, :focus-visible은 브라우저 휴리스틱이라 포커스를 받고도 안 나타나는 경우가 있습니다. */
+.skip:focus { transform: none; outline: 2px solid var(--accent); outline-offset: 2px; }
+
 .eyebrow {
   margin: 0;
   font-family: var(--font-display);

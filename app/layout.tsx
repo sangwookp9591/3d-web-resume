@@ -92,6 +92,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           inert로 재워야 하는데(탭·스크린리더 차단), 판은 portal로 body에 붙으므로
           "판을 뺀 나머지"를 가리킬 노드가 하나 필요합니다. */}
       <body>
+        {/* 키보드로 들어온 사람은 커버의 검색창·통계·안내를 지나야 본문에 닿습니다.
+            평소에는 화면 밖에 있다가 탭을 처음 눌렀을 때만 나타납니다. */}
+        <a className="skip" href="#main">본문으로 건너뛰기</a>
         <div id="root">{children}</div>
         <script
           dangerouslySetInnerHTML={{
