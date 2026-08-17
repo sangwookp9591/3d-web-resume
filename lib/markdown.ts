@@ -1,7 +1,7 @@
 import { SITE_URL, PERSON } from './site';
 import { sections } from './worldConfig';
 import { WIKI } from './wiki';
-import { REPOS, PRINCIPLES } from './content';
+import { REPOS, PRINCIPLES, SHARES, SHARES_LEAD } from './content';
 
 /* AEO 응답 레이어의 본문. 페이지와 같은 상수에서 나오므로 화면과 마크다운이 어긋날 수
    없습니다 — 여기에만 있는 문장은 한 줄도 없습니다.
@@ -19,6 +19,7 @@ export function resumeMarkdown() {
 
 - 이메일: ${PERSON.email}
 - GitHub: ${PERSON.github}
+- YouTube: ${PERSON.youtube}
 - 소속: ${PERSON.employer} (${PERSON.period.start} – ${PERSON.period.end})
 - 원본: ${SITE_URL}
 
@@ -39,6 +40,12 @@ ${sections.map((s, i) => `### ${i + 1}. ${s.title}
 ${s.body}
 
 ${list(s.tags ?? [])}`).join('\n\n')}
+
+## 팀에 공유한 것들
+
+${SHARES_LEAD}
+
+${SHARES.map((s) => `- **${s.date} · ${s.kind}** — ${s.title}. ${s.note}`).join('\n')}
 
 ## 일하는 방식
 
@@ -77,6 +84,10 @@ ${REPOS.map((r) => `- [${r.name}](${SITE_URL}/#footprint): ${r.stack}. ${r.commi
 
 ${sections.map((s) => `- [${s.title}](${SITE_URL}/#${s.id}): ${s.eyebrow}. ${s.body}`).join('\n')}
 
+## 팀에 공유한 것들
+
+${SHARES.map((s) => `- [${s.title}](${SITE_URL}/#sharing): ${s.date} · ${s.kind}.`).join('\n')}
+
 ## 일하는 방식
 
 ${PRINCIPLES.map(([head]) => `- [${head}](${SITE_URL}/#principles)`).join('\n')}
@@ -89,5 +100,6 @@ ${PRINCIPLES.map(([head]) => `- [${head}](${SITE_URL}/#principles)`).join('\n')}
 
 - 메일: ${PERSON.email}
 - GitHub: ${PERSON.github}
+- YouTube: ${PERSON.youtube}
 `;
 }

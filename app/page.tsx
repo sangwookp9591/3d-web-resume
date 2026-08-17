@@ -1,6 +1,7 @@
 import Cover from '@/components/Cover';
 import World from '@/components/World';
 import Footprint from '@/components/Footprint';
+import Sharing from '@/components/Sharing';
 import Principles from '@/components/Principles';
 import CharacterKit from '@/components/CharacterKit';
 import Colophon from '@/components/Colophon';
@@ -25,9 +26,10 @@ export default function Page() {
       />
       <div className="sky" aria-hidden="true" />
       <Cover />
-      <main>
+      <main id="main">
         <World />
         <Footprint />
+        <Sharing />
         <Principles />
         <CharacterKit />
       </main>

@@ -32,6 +32,7 @@ export const PERSON = {
   alternateName: ['iron', '아이언', 'Sangwook Park'],
   email: 'sangwookp9591@gmail.com',
   github: 'https://github.com/sangwookp9591',
+  youtube: 'https://www.youtube.com/@ai-ng-tech',
   jobTitle: '풀스택 개발자',
   headline: '제품을 만들고, 팀의 작업 방식을 설계하는 개발자',
   summary:

@@ -8,6 +8,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useOracleBrain from './brain';
+import Markdown from './Markdown';
+import { polish } from '@/lib/answer';
 import type { MorphField } from './morph';
 
 type Brain = ReturnType<typeof useOracleBrain>;
@@ -106,10 +108,15 @@ export default function Oracle() {
     return () => removeEventListener('scroll', on);
   }, []);
 
+  // 모델은 방문자가 물어볼 뜻을 보인 다음에 받습니다(brain.warm). 창을 여는 것과
+  // 입력칸에 손을 대는 것이 그 신호입니다 — 스크롤만 하다 나가는 사람은 아무것도 안 받습니다.
+  const warm = brain.warm;
+
   const grow = useCallback(() => {
+    warm();
     setOpen(true);
     scrollTo({ top: 0, behavior: 'smooth' });   // 창은 화면 중앙에 있으니 세계도 처음으로
-  }, []);
+  }, [warm]);
 
   const shrink = useCallback(() => {
     setOpen(false);
@@ -243,12 +250,24 @@ export default function Oracle() {
               다시 읽지 않고, 끝난 뒤에 한 번 읽습니다. */}
           <div className="orc__log" ref={logRef} role="log" aria-live="polite" aria-busy={!!streaming}>
             {turns.length === 0
-              ? <p className="orc__hint">이력 · 저장소 · 기술 스택 · 일하는 방식에 대해 물어보세요.</p>
-              : turns.map((t, i) => (
-                  <p className={`orc__turn orc__turn--${t.role}`} key={t.id ?? i}>
-                    {t.text || <span className="orc__dots" aria-label="생각 중"><i /><i /><i /></span>}
-                  </p>
-                ))}
+              ? <p className="orc__hint">이력이든 저장소든 기술 스택이든, 궁금한 걸 그냥 물어보세요.</p>
+              : turns.map((t, i) => {
+                  if (t.role === 'you') {
+                    return <p className="orc__turn orc__turn--you" key={t.id ?? i}>{t.text}</p>;
+                  }
+                  /* 흐르는 중에만 다듬습니다. 모델이 사고 과정이나 "### 요약"을 먼저 뱉는
+                     순간 그게 그대로 화면에 흐르므로 실시간으로 걷어내야 하지만, 끝난 답은
+                     brain.say()가 이미 다듬어 저장한 것이라 다시 통과시켜도 같은 글자입니다.
+                     로그 전체를 토큰마다 다시 다듬을 이유가 없습니다. */
+                  const body = t.pending ? polish(t.text) : t.text;
+                  return (
+                    <div className={`orc__turn orc__turn--aing${body ? '' : ' is-empty'}`} key={t.id ?? i}>
+                      {body
+                        ? <Markdown text={body} />
+                        : <span className="orc__dots" aria-label="생각 중"><i /><i /><i /></span>}
+                    </div>
+                  );
+                })}
           </div>
 
           <form className="orc__form" onSubmit={ask}>
@@ -257,6 +276,7 @@ export default function Oracle() {
               className="orc__input"
               value={q}
               onChange={(e) => setQ(e.target.value)}
+              onFocus={warm}
               placeholder="무엇이 궁금한가요?"
               aria-label="질문"
               tabIndex={open ? 0 : -1}
