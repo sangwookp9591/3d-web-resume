@@ -27,14 +27,20 @@ if (!resolved && process.env.CI) {
 
 export const SITE_URL = resolved || 'http://localhost:3000';
 
+/* 계정 이름은 한 번만 적습니다. URL과 로그인/핸들을 따로 들고 있으면 계정을 옮길 때
+   한쪽만 고쳐지고, 그때 푸터의 제목 링크와 그 아래 목록이 서로 다른 계정을 가리킵니다 —
+   API는 404를 주고 화면은 "저장소가 없는 사람"처럼 보입니다. */
+const GH = 'sangwookp9591';
+const YT = '@ai-ng-tech';
+
 export const PERSON = {
   name: '박상욱',
   alternateName: ['iron', '아이언', 'Sangwook Park'],
   email: 'sangwookp9591@gmail.com',
-  github: 'https://github.com/sangwookp9591',
-  githubLogin: 'sangwookp9591',
-  youtube: 'https://www.youtube.com/@ai-ng-tech',
-  youtubeHandle: '@ai-ng-tech',
+  github: `https://github.com/${GH}`,
+  githubLogin: GH,
+  youtube: `https://www.youtube.com/${YT}`,
+  youtubeHandle: YT,
   /* RSS 피드는 핸들이 아니라 채널 ID만 받습니다(/feeds/videos.xml?channel_id=…).
      @핸들로는 404가 나므로 채널 페이지에서 한 번 꺼내 여기 적어 둡니다. */
   youtubeChannelId: 'UCuzvnXas0mUqueHOqtoOPeQ',

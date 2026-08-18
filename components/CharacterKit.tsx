@@ -43,7 +43,7 @@ export default function CharacterKit() {
   const expr = setItems('expr');
   const pose = setItems('pose');
   // 페이지 안의 뷰어는 미리보기라 lite(205kB)면 충분합니다. 1.22MB 풀 모델은
-  // 킷 다운로드로 가져가는 물건이지, 이력서를 스크롤하다가 받을 물건이 아닙니다.
+  // 이력서를 스크롤하다가 받을 물건이 아닙니다.
   const glb = kit.model3d?.['aing-lite'] ?? kit.model3d?.aing
     ?? (kit.model3d ? Object.values(kit.model3d)[0] : null);
 
@@ -53,7 +53,7 @@ export default function CharacterKit() {
         <h2 className="kit__title">여기까지 안내한 고양이는, 쓸 수 있는 에셋입니다</h2>
         <p className="kit__lead">
           표정과 액션을 시트로 뽑고, 모션은 알파 애니메이션으로, 형태는 3D 모델로 만들었습니다.
-          웹은 물론 three.js·WebGPU·Unity에서 바로 쓸 수 있게 아틀라스와 매니페스트를 함께 냅니다.
+          웹은 물론 three.js·WebGPU·Unity에서 바로 쓸 수 있게 아틀라스와 매니페스트까지 맞춰 뒀습니다.
         </p>
       </div>
 

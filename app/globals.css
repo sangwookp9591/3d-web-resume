@@ -850,7 +850,7 @@ a { color: inherit; }
 .feed__logo { width: 19px; height: 19px; flex: none; fill: currentColor; }
 .feed__at { margin-left: auto; font-size: 0.76rem; font-weight: 500; color: var(--ink-faint); }
 
-.feed__list { margin: 0; padding: 0; list-style: none; display: grid; }
+.feed__list { margin: 0; padding: 0; list-style: none; }
 .feed__list > li + li { border-top: 1px solid var(--rim-low); }
 .feed__item {
   display: grid;
@@ -876,30 +876,21 @@ a { color: inherit; }
   background: color-mix(in oklab, var(--ink) 8%, transparent);
 }
 .feed__vidtext { display: grid; gap: 3px; min-width: 0; }
-/* 제목은 두 줄에서 자릅니다. 유튜브 제목은 길이가 들쭉날쭉해서 안 자르면 카드마다
-   높이가 다르고, 옆의 GitHub 목록과 줄이 안 맞습니다. */
-.feed__name {
-  font-size: 0.88rem;
-  font-weight: 620;
-  line-height: 1.45;
+/* 제목도 설명도 두 줄에서 자릅니다. 유튜브 제목은 길이가 들쭉날쭉해서 안 자르면
+   카드마다 높이가 다르고, 옆의 GitHub 목록과 줄이 안 맞습니다. 두 벌로 적으면
+   나중에 한쪽만 세 줄이 되어 두 목록이 어긋납니다. */
+.feed__name, .feed__desc {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
 }
+.feed__name { font-size: 0.88rem; font-weight: 620; line-height: 1.45; }
+.feed__desc { font-size: 0.78rem; line-height: 1.6; color: var(--ink-soft); }
 .feed__meta {
   font-size: 0.73rem;
   color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
-}
-.feed__desc {
-  font-size: 0.78rem;
-  line-height: 1.6;
-  color: var(--ink-soft);
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
 }
 .colophon__meta { margin: 6px 0 0; font-size: 0.8rem; color: var(--ink-faint); }
 

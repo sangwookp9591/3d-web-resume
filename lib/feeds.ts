@@ -22,16 +22,16 @@ async function grab(url: string, headers?: Record<string, string>) {
   return res;
 }
 
-export type Video = { id: string; title: string; date: string };
-export type Project = { name: string; url: string; lang: string | null; pushed: string; desc: string };
+type Video = { id: string; title: string; date: string };
+type Project = { name: string; url: string; lang: string | null; pushed: string; desc: string };
 
 /** 2026-08-13 → 2026.08.13. 사이트의 다른 날짜와 같은 표기입니다. */
 export const dotted = (iso: string) => iso.replace(/-/g, '.');
 
-const ENTITY: Record<string, string> = {
-  '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&apos;': "'",
-};
-const unxml = (s: string) => s.replace(/&(?:amp|lt|gt|quot|#39|apos);/g, (m) => ENTITY[m]);
+/* &amp;가 마지막이어야 합니다 — 먼저 풀면 "&amp;lt;"가 "<"까지 두 번 풀립니다. */
+const unxml = (s: string) => s
+  .replace(/&(?:#39|apos);/g, "'").replace(/&quot;/g, '"')
+  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 const tag = (chunk: string, name: string) =>
   chunk.match(new RegExp(`<${name}>([\\s\\S]*?)</${name}>`))?.[1] ?? '';
 

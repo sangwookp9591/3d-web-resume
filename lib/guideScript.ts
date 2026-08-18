@@ -59,6 +59,6 @@ export const SCRIPT: Record<string, { motion: string; pose: string; text: string
   },
   colophon: {
     motion: 'wave', pose: 'bow',
-    text: '여기까지 같이 걸어와 줘서 고마워! 연락은 아래 메일로 하면 돼.',
+    text: '여기까지 같이 걸어와 줘서 고마워! 저기 GitHub이랑 유튜브에 iron이 요즘 만드는 게 바로바로 올라와. 연락은 아래 메일로 하면 돼!',
   },
 };
