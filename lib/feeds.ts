@@ -42,16 +42,37 @@ const detag = (title: string) => title.replace(/(?:\s*#[^\s#]+)+\s*$/u, '').trim
 /** 채널 RSS. 키도 인증도 없고 한도도 없습니다 — 최신 15개까지 옵니다. */
 export async function recentVideos(limit = 4): Promise<Video[]> {
   try {
-    const xml = await (await grab(
+    const res = await grab(
       `https://www.youtube.com/feeds/videos.xml?channel_id=${PERSON.youtubeChannelId}`,
-    )).text();
-    return xml.split('<entry>').slice(1, limit + 1)
+      /* 헤더 없는 요청에 유튜브는 피드 대신 동의 화면을 200으로 돌려주기도 합니다 — 로컬에서는
+         잘 되다가 배포에서만 목록이 비는 이유가 이것이었습니다(GitHub 쪽만 UA를 달고 있었습니다).
+         공개 피드를, 그것도 제 채널 것을 가져오는 요청이라 신원을 감추는 게 아니라 브라우저가
+         보내는 것과 같은 것을 보낼 뿐입니다. */
+      {
+        accept: 'application/atom+xml, application/xml;q=0.9, */*;q=0.8',
+        'accept-language': 'ko,en;q=0.9',
+        'user-agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
+          '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+      },
+    );
+    const xml = await res.text();
+    const videos = xml.split('<entry>').slice(1, limit + 1)
       .map((e) => ({
         id: tag(e, 'yt:videoId'),
         title: detag(unxml(tag(e, 'title'))),
         date: tag(e, 'published').slice(0, 10),
       }))
       .filter((v) => v.id && v.title);
+    /* 200을 받고도 0개면 성공이 아닙니다. 그냥 빈 배열로 돌려보내면 화면에서 "아직 영상이
+       없는 채널"과 구분되지 않고, 로그에도 아무것도 안 남아 다음 사람이 처음부터 다시
+       찾아야 합니다. 무엇을 받았는지 앞부분을 같이 남깁니다. */
+    if (!videos.length) {
+      throw new Error(
+        `응답은 ${res.status}인데 <entry>가 0개입니다 (${xml.length}B). 앞부분: ${xml.slice(0, 200)}`,
+      );
+    }
+    return videos;
   } catch (err) {
     return fell('YouTube 피드', err);
   }
@@ -70,7 +91,7 @@ export async function recentProjects(limit = 4): Promise<Project[]> {
       // GitHub은 User-Agent 없는 요청을 403으로 돌려보냅니다.
       { accept: 'application/vnd.github+json', 'user-agent': PERSON.githubLogin },
     )).json();
-    return repos
+    const list = repos
       .filter((r) => !r.fork && !r.archived)
       .slice(0, limit)
       .map((r) => ({
@@ -80,6 +101,9 @@ export async function recentProjects(limit = 4): Promise<Project[]> {
         pushed: r.pushed_at.slice(0, 10),
         desc: r.description ?? '',
       }));
+    // 위와 같은 이유입니다 — 받아 왔는데 0개인 것은 성공이 아니라 조용한 실패입니다.
+    if (!list.length) throw new Error(`저장소 ${repos.length}개를 받았는데 걸 것이 0개입니다`);
+    return list;
   } catch (err) {
     return fell('GitHub 저장소', err);
   }
