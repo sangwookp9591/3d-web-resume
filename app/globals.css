@@ -1060,11 +1060,16 @@ a { color: inherit; }
   transform: translate(-50%, -50%);
   z-index: 89;
   border-radius: 28px;
+  /* 이 판만 유리 두 겹입니다 — 하이라이트 그라디언트 아래에 바탕(.plate의 --glass,
+     .aing__say의 --paper 78%와 같은 자리)을 깔았습니다. 한 겹으로 두면 뒤 글자가
+     그대로 읽히는데, backdrop-filter는 있으면 좋은 것이지 기댈 것이 못 됩니다 —
+     GPU 합성이 꺼진 환경에서는 그냥 무시되고 이 판은 채팅 로그를 담고 있습니다. */
   background:
     linear-gradient(150deg,
-      color-mix(in oklab, #ffffff 64%, transparent) 0%,
-      color-mix(in oklab, var(--paper) 30%, transparent) 52%,
-      color-mix(in oklab, var(--ice) 24%, transparent) 100%);
+      color-mix(in oklab, #ffffff 54%, transparent) 0%,
+      transparent 52%,
+      color-mix(in oklab, var(--ice) 22%, transparent) 100%),
+    var(--paper);
   backdrop-filter: blur(22px) saturate(1.6);
   -webkit-backdrop-filter: blur(22px) saturate(1.6);
   box-shadow:

@@ -621,7 +621,7 @@ export default async function mountMorph(
     s.clipPath = `inset(${insetY.toFixed(2)}px ${insetX.toFixed(2)}px round ${dims.r.toFixed(2)}px)`;
 
     // 몸체 알파: 중간에 옅어졌다가(=파티클로 분해) 다시 결합합니다
-    s.setProperty('--panel-a', (mix(0.92, 0.96, m) * (1 - 0.55 * Math.sin(Math.PI * m))).toFixed(3));
+    s.setProperty('--panel-a', (mix(0.92, 1, m) * (1 - 0.55 * Math.sin(Math.PI * m))).toFixed(3));
     // 외곽이 파티클로 거의 완성된 뒤에야 내용이 등장하도록 늦은 구간에 배치
     s.setProperty('--rev-bar', (1 - smoothRange(m, 0.04, 0.26)).toFixed(3));
     s.setProperty('--rev-head', smoothRange(m, 0.72, 0.92).toFixed(3));
