@@ -812,21 +812,95 @@ a { color: inherit; }
 }
 .colophon__mail:hover { color: var(--accent); border-color: var(--accent); }
 .colophon__mail:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
-.colophon__links {
-  margin: 2px 0 0;
+/* ── 바깥에서 오는 두 목록 ─────────────────────────────────────────────
+   GitHub 최근 저장소와 YouTube 최근 영상. 콜로폰은 가운데 정렬이지만 이 두 카드
+   안쪽은 왼쪽을 맞춥니다 — 목록은 눈이 왼쪽 모서리를 타고 내려가야 읽힙니다. */
+.feeds {
+  width: min(1080px, 100%);
+  margin: 0 auto clamp(30px, 5vw, 52px);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  gap: clamp(14px, 2.4vw, 24px);
+  /* 각 카드가 제 내용 높이만 씁니다. 늘려 맞추면 썸네일 없는 GitHub 쪽이
+     아래를 절반쯤 빈 채로 붙잡고 있습니다. */
+  align-items: start;
+  text-align: left;
+}
+.feed {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: clamp(18px, 2.4vw, 24px);
+  border-radius: 20px;
+  border: 1px solid var(--rim-low);
+  background: color-mix(in oklab, #ffffff 52%, transparent);
+}
+.feed__head { margin: 0; font-size: 0.95rem; font-weight: 650; }
+.feed__brand {
   display: flex;
-  gap: 18px;
-  font-size: 0.82rem;
-}
-.colophon__links a {
-  color: var(--ink-faint);
+  align-items: center;
+  gap: 9px;
+  color: var(--ink);
   text-decoration: none;
-  border-bottom: 1px solid transparent;
-  padding-bottom: 1px;
-  transition: color 200ms ease, border-color 200ms ease;
+  transition: color 200ms ease;
 }
-.colophon__links a:hover { color: var(--accent); border-color: var(--accent); }
-.colophon__links a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.feed__brand:hover { color: var(--accent); }
+.feed__brand:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
+/* fill:currentColor라 로고가 글자와 같이 물듭니다 — 파일로 두면 hover에서 글자만 움직입니다. */
+.feed__logo { width: 19px; height: 19px; flex: none; fill: currentColor; }
+.feed__at { margin-left: auto; font-size: 0.76rem; font-weight: 500; color: var(--ink-faint); }
+
+.feed__list { margin: 0; padding: 0; list-style: none; display: grid; }
+.feed__list > li + li { border-top: 1px solid var(--rim-low); }
+.feed__item {
+  display: grid;
+  gap: 2px;
+  padding: 11px 10px;
+  margin: 0 -10px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 180ms ease;
+}
+.feed__item:hover { background: color-mix(in oklab, #ffffff 70%, transparent); }
+.feed__item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* 영상은 썸네일이 먼저 오므로 두 칸입니다. 프로젝트는 글자뿐이라 위 한 칸 그대로 씁니다. */
+.feed__item--vid { grid-template-columns: 104px minmax(0, 1fr); gap: 12px; align-items: center; }
+.feed__thumb {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 9px;
+  border: 1px solid var(--rim-low);
+  background: color-mix(in oklab, var(--ink) 8%, transparent);
+}
+.feed__vidtext { display: grid; gap: 3px; min-width: 0; }
+/* 제목은 두 줄에서 자릅니다. 유튜브 제목은 길이가 들쭉날쭉해서 안 자르면 카드마다
+   높이가 다르고, 옆의 GitHub 목록과 줄이 안 맞습니다. */
+.feed__name {
+  font-size: 0.88rem;
+  font-weight: 620;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.feed__meta {
+  font-size: 0.73rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+.feed__desc {
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
 .colophon__meta { margin: 6px 0 0; font-size: 0.8rem; color: var(--ink-faint); }
 
 /* ══ Responsive ═════════════════════════════════════════════════════════ */
@@ -948,50 +1022,6 @@ a { color: inherit; }
   color: var(--ink-faint);
   font-variant: all-small-caps;
 }
-
-.kit__use {
-  width: min(1080px, 100%);
-  margin: clamp(28px, 4vw, 44px) auto 0;
-  padding: 0; list-style: none;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
-  gap: 10px;
-}
-.kit__usecell {
-  display: grid; gap: 6px;
-  padding: 16px 18px;
-  border-radius: 16px;
-  border: 1px solid var(--rim-low);
-  background: color-mix(in oklab, #ffffff 52%, transparent);
-  font-size: 0.84rem;
-  line-height: 1.7;
-  color: var(--ink-soft);
-}
-.kit__usecell code {
-  justify-self: start;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink);
-  background: color-mix(in oklab, var(--ice) 42%, transparent);
-  padding: 3px 9px;
-  border-radius: 999px;
-}
-
-.kit__dl {
-  display: inline-block;
-  margin-top: clamp(18px, 3vw, 28px);
-  padding: 14px 26px;
-  border-radius: 999px;
-  text-decoration: none;
-  font-weight: 620;
-  font-size: 0.92rem;
-  color: var(--cloud);
-  background: var(--ink);
-  transition: transform 200ms cubic-bezier(.22,.61,.36,1);
-}
-.kit__dl:hover { transform: translateY(-2px); }
-.kit__dl:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 
 /* ══ Oracle — 검색창이 그대로 자라 채팅창이 되는 판 ═════════════════════
    판은 화면 중앙에 fixed로 하나뿐입니다. 접힘/펼침은 clip-path만 바뀌고,

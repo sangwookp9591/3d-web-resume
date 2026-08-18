@@ -21,7 +21,9 @@ const csp = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "img-src 'self' data: blob:",
+  /* i.ytimg.com은 콜로폰의 유튜브 썸네일입니다. 여기서 빼면 이미지가 조용히 막혀
+     제목만 남은 빈 칸이 됩니다 — 콘솔에만 뜨고 화면은 멀쩡해 보입니다. */
+  "img-src 'self' data: blob: https://i.ytimg.com",
   // 인라인 style 속성(--share 같은 CSS 변수)을 쓰므로 스타일 쪽은 열어 둡니다.
   "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
   "font-src 'self' https://cdn.jsdelivr.net",

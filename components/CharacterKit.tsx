@@ -62,21 +62,6 @@ export default function CharacterKit() {
       <Row title="모션" note="알파 애니메이션 WebP · PNG 시퀀스 동봉" items={motions} big />
       <Row title="표정" note={`${expr.length}종 · 알파 컷아웃`} items={expr} />
       <Row title="액션" note={`${pose.length}종 · 알파 컷아웃`} items={pose} />
-
-      {kit.download && (
-        <a className="kit__dl" href={`/mascot/${kit.download}`} download>
-          킷 내려받기 · 표정·액션·모션·아틀라스·GLB
-        </a>
-      )}
-
-      <ul className="kit__use">
-        {Object.entries(kit.usage || {}).map(([k, v]) => (
-          <li className="kit__usecell" key={k}>
-            <code>{k}</code>
-            <span>{v}</span>
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }

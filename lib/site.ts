@@ -32,7 +32,12 @@ export const PERSON = {
   alternateName: ['iron', '아이언', 'Sangwook Park'],
   email: 'sangwookp9591@gmail.com',
   github: 'https://github.com/sangwookp9591',
+  githubLogin: 'sangwookp9591',
   youtube: 'https://www.youtube.com/@ai-ng-tech',
+  youtubeHandle: '@ai-ng-tech',
+  /* RSS 피드는 핸들이 아니라 채널 ID만 받습니다(/feeds/videos.xml?channel_id=…).
+     @핸들로는 404가 나므로 채널 페이지에서 한 번 꺼내 여기 적어 둡니다. */
+  youtubeChannelId: 'UCuzvnXas0mUqueHOqtoOPeQ',
   jobTitle: '풀스택 개발자',
   headline: '제품을 만들고, 팀의 작업 방식을 설계하는 개발자',
   summary:
