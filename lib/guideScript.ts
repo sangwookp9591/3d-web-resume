@@ -23,7 +23,7 @@ export const SCRIPT: Record<string, { motion: string; pose: string; text: string
   },
   immunity: {
     motion: 'idle', pose: 'thumbsup',
-    text: '물살은 저렇게 센데 다리는 안 흔들려. 옆에 똑같은 돌이 열 개 쌓여 있지? 같은 검사를 열 번씩 돌린 거야. 그래서 플레이크가 0이야.',
+    text: '물살은 저렇게 센데 다리는 안 흔들려. 옆에 똑같은 돌이 열 개 쌓여 있지? 같은 검사를 열 번씩 돌린 거야. 열 번 다 똑같이 통과했대!',
   },
   gatehouse: {
     motion: 'think', pose: 'point_side',
@@ -31,7 +31,7 @@ export const SCRIPT: Record<string, { motion: string; pose: string; text: string
   },
   observatory: {
     motion: 'think', pose: 'think',
-    text: '언덕 아래로 물길이 세 갈래로 갈라지지? 하나가 막혀도 나머지로 흘러. LLM 하나가 죽어도 안 멈추는 이유야. 망원경은 느려지는 곳을 먼저 보라고 있는 거고.',
+    text: '언덕 아래로 물길이 세 갈래로 갈라지지? 하나가 막혀도 나머지로 흘러. AI 업체 한 곳이 멈춰도 서비스가 안 끊기는 이유야. 망원경은 느려지는 곳을 먼저 보라고 있는 거고.',
   },
   vault: {
     motion: 'idle', pose: 'carry',

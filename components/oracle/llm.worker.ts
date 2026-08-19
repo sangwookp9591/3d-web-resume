@@ -1,10 +1,10 @@
 /* 언어 모델을 브라우저 안에서 돌립니다. 서버로 아무것도 보내지 않습니다.
    메인 스레드에서 돌리면 생성 한 번에 UI가 통째로 멈추므로 워커에 가둡니다.
 
-   기본은 Qwen3 0.6B q4f16 (약 570MB). 두 번째 방문부터는 브라우저 캐시에서 바로 올라옵니다.
+   기본은 Gemma 3 1B q4f16 (약 763MB). 두 번째 방문부터는 브라우저 캐시에서 바로 올라옵니다.
    모델 목록과 용량은 models.js 한 곳에 있습니다. */
 import { AutoTokenizer, AutoModelForCausalLM, TextStreamer } from '@huggingface/transformers';
-import type { PreTrainedModel, PreTrainedTokenizer, ProgressInfo } from '@huggingface/transformers';
+import type { PreTrainedModel, PreTrainedTokenizer, ProgressInfo, Tensor } from '@huggingface/transformers';
 import { DEFAULT_MODEL, byId } from './models';
 
 /* 메인 스레드(brain.ts)와 주고받는 계약. 양쪽이 이 한 곳을 봅니다.
@@ -17,12 +17,17 @@ export type WorkerResponse =
   | { type: 'progress'; ratio: number; mb: number }
   | { type: 'status'; status: 'loading' | 'ready' | 'error'; model?: string; message?: string }
   | { type: 'token'; id: string; text: string }
-  | { type: 'done'; id: string }
+  // capped: 예산(max_new_tokens)이 끊었다는 표시. 받는 쪽이 마지막 반 문장을 떼는 근거입니다.
+  | { type: 'done'; id: string; capped: boolean }
   | { type: 'error'; id?: string; message: string };
 
 // 전역 postMessage는 lib.dom의 Window 오버로드로 잡혀 payload를 들여다보지 않습니다.
 // 계약을 한 번 통과시켜 워커가 보내는 모양을 고정합니다.
 const post = (msg: WorkerResponse) => postMessage(msg);
+
+/* 답 하나에 쓸 토큰 상한. 여기서 멎으면 문장 한가운데서 끊기므로 done에 그 사실을 실어 보냅니다.
+   상한 자체를 늘리는 건 답이 아닙니다 — 길어질 뿐 끊기는 자리만 뒤로 밀립니다. */
+const MAX_NEW_TOKENS = 320;
 
 let tokenizer: PreTrainedTokenizer | null = null;
 let model: PreTrainedModel | null = null;
@@ -34,7 +39,12 @@ const files = new Map<string, { loaded: number; total: number }>();
 const reportProgress = () => {
   let loaded = 0, total = 0;
   for (const f of files.values()) { loaded += f.loaded; total += f.total; }
-  if (total > 0) post({ type: 'progress', ratio: loaded / total, mb: Math.round(loaded / 1e6) });
+  /* 분모는 지금까지 본 파일이 아니라 모델 전체 크기입니다. 설정·토크나이저 같은 작은 파일이
+     먼저 끝나면 합계가 잠깐 100%가 되고, 그다음 1.4GB 가중치가 등록되는 순간 44%로
+     되돌아갑니다 — 다 받은 줄 알고 물어보려던 사람에게는 진행바가 고장 난 것으로 보입니다.
+     models.ts의 sizeMB가 실측값이라 처음부터 맞는 분모를 쓸 수 있습니다. */
+  total = Math.max(total, spec.sizeMB * 1e6);
+  if (total > 0) post({ type: 'progress', ratio: Math.min(1, loaded / total), mb: Math.round(loaded / 1e6) });
 };
 
 function load(id: string) {
@@ -86,8 +96,19 @@ async function ask({ id, system, question }: Extract<WorkerRequest, { type: 'ask
     callback_function: (piece: string) => post({ type: 'token', id, text: piece }),
   });
 
-  await model!.generate({ ...inputs, max_new_tokens: 320, do_sample: false, streamer });
-  post({ type: 'done', id });
+  /* greedy(do_sample:false)로 두면 안 됩니다 — Qwen3 모델 카드가 명시적으로 말리는 설정이고,
+     실제로 0.6B가 <자료>를 통째로 베껴 상한까지 흘리다 문장 한가운데서 끊겼습니다.
+     구체적인 값은 계열마다 다르므로 models.ts의 표에서 가져옵니다. */
+  const seq = await model!.generate({
+    ...inputs,
+    max_new_tokens: MAX_NEW_TOKENS,
+    do_sample: true,
+    ...spec.sampling,
+    streamer,
+  }) as Tensor;
+  // 돌아오는 건 프롬프트까지 담은 한 줄이라, 길이 차가 곧 새로 만든 토큰 수입니다.
+  const made = seq.dims[1] - inputs.input_ids.dims[1];
+  post({ type: 'done', id, capped: made >= MAX_NEW_TOKENS });
 }
 
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {

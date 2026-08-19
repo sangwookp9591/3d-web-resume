@@ -12,6 +12,10 @@ export type Chunk = {
   text: string;
   /** 아래에 세부 조각을 거느린 개요. 랭킹에서 세부에게 자리를 양보합니다. */
   overview?: boolean;
+  /** 이미 답의 꼴을 하고 있는 조각. 모델을 거치지 않고 원문 그대로 나갑니다.
+      나열은 문장으로 바꿔서 좋아지는 글이 아닙니다 — 0.6B에 "어떤 스택 쓰나요"를
+      맡겼더니 프론트 네 개만 골라 옮기고 Spring Boot도 Java도 빠뜨렸습니다. */
+  verbatim?: boolean;
 };
 
 export const WIKI: Chunk[] = [
@@ -343,6 +347,7 @@ E2E 플레이크는 하이드레이션 유틸로 원인을 없앤 뒤 burn-in으
   {
     id: 'stack',
     title: '스택',
+    verbatim: true,
     tags: '스택 기술 언어 프레임워크 tech stack 사용 도구 라이브러리 다룰수있는 목록 리액트 넥스트 자바스크립트 타입스크립트',
     text: `프론트: Next.js 16, React 19, vanilla-extract + Sprinkles, StyleX, Vite, TanStack Query, Zustand, Playwright, TypeScript, FSD.
 백엔드: Spring Boot 3.5, Java 21(가상 스레드), Gradle 멀티모듈, JPA, MyBatis, PostgreSQL, Flyway,
@@ -362,7 +367,7 @@ OpenSearch, Redis, ShedLock, Resilience4j, ArchUnit, Testcontainers, DDD/Hexagon
 화면을 붙잡는 것은 JS가 아니라 position:sticky라서, 엔진이 없어도 모션을 줄여 달라고 해도 다섯 장은 그대로 읽힙니다.
 마스코트 Ai-ng(아잉)는 표정 16종, 액션 16종, 모션 6종, GLB 3D 모델을 담은 재사용 가능한 에셋 킷입니다.
 초기 번들 210KB gzip(App Router 런타임 포함), 픽셀 에셋 26장 772KB.
-지금 이 검색창은 WebGPU 컴퓨트 셰이더로 파티클 1만 6천 개가 만드는 막이고, 답은 브라우저 안에서 도는 소형 언어 모델(Qwen3 0.6B, 약 570MB)이 합니다. 질문은 서버로 나가지 않습니다.
+지금 이 검색창은 WebGPU 컴퓨트 셰이더로 파티클 1만 6천 개가 만드는 막이고, 답은 브라우저 안에서 도는 소형 언어 모델(Gemma 3 1B, 약 763MB)이 합니다. 질문은 서버로 나가지 않습니다.
 사이트 자체는 Next.js 16 App Router로, 본문은 전부 서버 컴포넌트에서 렌더하고 AI 에이전트를 위해 Accept: text/markdown 협상과 llms.txt를 제공합니다.`,
   },
   {

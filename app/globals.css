@@ -36,6 +36,14 @@
   --font-body:    'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
   --gutter: clamp(20px, 5vw, 76px);
+  /* 여정의 글이 앉는 자리. 값이 두 개인 이유는 글과 막(.px-scrim)이 같은 자리를 봐야
+     하기 때문입니다 — 따로 두면 넓은 화면에서 글은 오른쪽으로 가고 막은 왼쪽에 남아,
+     문단 뒷부분이 그림 위에 그대로 얹힙니다. 실제로 그렇게 보였습니다.
+     기준 폭보다 화면이 넓어지면 남는 폭을 양옆으로 나눠, 글이 2,000px 화면의 왼쪽
+     76px에 붙어 버리는 것을 막습니다. */
+  --px-shell: 1360px;
+  --px-copy-w: min(50vw, 660px);
+  --px-copy-x: max(0px, calc((100vw - var(--px-shell)) / 2));
   --measure: 62ch;
 }
 
@@ -70,6 +78,10 @@ html, body {
 
 h1, h2, h3 { font-style: normal; text-wrap: balance; overflow-wrap: anywhere; min-width: 0; }
 img { max-width: 100%; height: auto; }
+/* 한국어는 기본값(break-word 계열)에서 낱말 한가운데를 끊습니다 — 제목이 "테스트가 흔들리 /
+   지 않게 만들었다"로 갈라집니다. 어절 사이에서만 끊게 두고, 대신 긴 URL·식별자처럼 어절
+   하나가 칸보다 넓은 경우만 overflow-wrap이 받습니다(말풍선·코드 블록에 이미 걸려 있습니다). */
+body { word-break: keep-all; }
 a { color: inherit; }
 
 /* 키보드로 처음 탭을 눌렀을 때만 나타나는 건너뛰기 링크. display:none이 아니라 화면
@@ -158,13 +170,16 @@ a { color: inherit; }
 /* 그림 위의 글이 읽히려면 그림 쪽을 눌러야 합니다. 무대 안에 두므로 엔진이 없으면
    이 막도 없습니다 — 그때 글 뒤에 있는 것은 그냥 페이지의 하늘입니다. */
 .px-scrim {
-  position: absolute; inset: 0 auto 0 0; width: min(58vw, 780px);
+  position: absolute; inset: 0 auto 0 0;
+  /* 글이 끝나는 자리까지 덮고 그 바깥에서 풀립니다. 고정 퍼센트로 두면 글 폭이 바뀔 때
+     문단 끝이 투명한 구간에 얹혀 안 읽힙니다 — 정지점을 글 자리에서 직접 계산합니다. */
+  width: min(94vw, calc(var(--px-copy-x) + var(--px-copy-w) + 260px));
   /* 글이 앉는 위쪽만 누릅니다. 아래까지 그으면 지면 위에 옅은 사각형 자국이 남습니다. */
   mask-image: linear-gradient(180deg, #000 68%, transparent 100%);
   background: linear-gradient(90deg,
-    color-mix(in oklab, var(--cloud) 94%, transparent) 0%,
-    color-mix(in oklab, var(--cloud) 82%, transparent) 40%,
-    color-mix(in oklab, var(--cloud) 38%, transparent) 68%,
+    color-mix(in oklab, var(--cloud) 94%, transparent) 0,
+    color-mix(in oklab, var(--cloud) 90%, transparent) calc(var(--px-copy-x) + var(--px-copy-w) * 0.62),
+    color-mix(in oklab, var(--cloud) 70%, transparent) calc(var(--px-copy-x) + var(--px-copy-w)),
     transparent 100%);
 }
 
@@ -193,8 +208,11 @@ a { color: inherit; }
        없습니다 — 200% 확대에서 실제로 그렇게 됩니다(WCAG 1.4.4·1.4.10).
        safe는 넘칠 때만 시작 정렬로 물러납니다. */
     display: grid; align-content: safe center;
-    width: min(46vw, 520px);
+    width: var(--px-copy-w);
     padding-block: 0;
+    /* 넓은 화면에서 글을 본문 기준 폭의 왼쪽 자리로 데려옵니다. 아잉이 걷는 가운데는
+       비워 두어야 하므로 가운데 정렬이 아니라 '가운데 정렬된 폭의 왼쪽'입니다. */
+    margin-inline-start: var(--px-copy-x);
   }
   /* 무대가 없을 때의 모습은 위 규칙이 안 붙은 상태 그 자체입니다 — 서버가 그린 다섯 장이
      문서 흐름에 세로로 쌓여 그냥 읽힙니다. 따로 되돌리는 규칙을 두지 않습니다. */
@@ -1288,6 +1306,30 @@ a { color: inherit; }
   border: 1px solid var(--rim-low);
 }
 .orc__pre code { background: none; padding: 0; font-size: 0.84em; line-height: 1.6; }
+
+/* 답 아래에 붙는 다음 질문거리. 답 말풍선과 한 덩어리로 읽혀야 하므로 로그의 gap(11px)
+   대신 더 붙여 놓고, 말풍선이 아니라 눌러서 이어 가는 것임을 테두리로 구분합니다.
+   말풍선을 감싼 래퍼가 flex 아이템이 되면서 .orc__turn--aing의 align-self가 안 먹으므로,
+   래퍼에도 같은 뜻(왼쪽 정렬 + 폭 제한)을 겁니다. */
+.orc__turn--aing { align-self: stretch; }
+.orc__tips { margin-top: 9px; }
+.orc__tips__lead {
+  margin: 0 0 7px 3px;
+  font-size: 0.78rem; font-weight: 600; letter-spacing: 0.01em;
+  color: var(--ink-faint);
+}
+.orc__tips ul { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; }
+.orc__tip {
+  font: inherit; font-size: 0.82rem; font-weight: 560;
+  padding: 7px 13px; border-radius: 999px; cursor: pointer;
+  color: var(--ink-soft);
+  background: color-mix(in oklab, #ffffff 52%, transparent);
+  border: 1px solid var(--rim-low);
+  transition: transform 160ms cubic-bezier(.22,.61,.36,1), color 160ms ease;
+}
+.orc__tip:hover:not(:disabled) { transform: translateY(-1px); color: var(--ink); }
+.orc__tip:disabled { opacity: 0.5; cursor: default; }
+.orc__tip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .orc__form {
   display: flex;

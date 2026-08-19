@@ -178,6 +178,32 @@ export function compose(query: string, hits: Chunk[]): string {
   return out.join('\n\n');
 }
 
+/** 답 아래에 붙일 다음 질문거리. 검색이 이 질문에 대해 2·3순위로 올린 조각의 화제를 씁니다.
+
+    예시 문장을 손으로 적어 두지 않는 이유는, 그 목록이 위키보다 먼저 낡기 때문입니다.
+    조각을 하나 더하거나 제목을 고치면 추천이 저절로 따라오고, 무엇보다 여기서 나온
+    화제는 실제로 답이 있는 화제입니다 — 눌렀는데 "위키에 없네요"가 나오지 않습니다. */
+const CHIP = 20;   // 칩 하나에 들어가는 글자 수. 넘치면 판이 좁을 때 두 줄로 접힙니다.
+
+export function suggest(query: string, asked: string[] = [], n = 3): string[] {
+  const key = (t: string) => t.replace(/\s+/g, '');
+  const seen = new Set(asked.map(key));
+  const out: string[] = [];
+  // 1순위는 방금 답한 조각이라 건너뜁니다. 여유분을 더 뽑는 건 이미 물어본 화제를 걸러내서입니다.
+  for (const c of retrieve(query, n + 3).slice(1)) {
+    /* 칩 한 줄에 들어가야 합니다. 먼저 제목의 화제를 그대로 써 보고, 길 때만 앞의 한 조각으로
+       줄입니다('에이전트 스킬 CLI · PR 자동 리뷰 · 정보 공유' → '에이전트 스킬 CLI').
+       처음부터 자르면 'Carry·Trade·OCR'이 'Carry'가 되어 무슨 말인지 알 수 없게 됩니다. */
+    let topic = topicOf(c.title);
+    if (topic.length > CHIP) topic = topic.split(/[·,]/)[0].trim();
+    if (!topic || topic.length > CHIP || seen.has(key(topic))) continue;
+    seen.add(key(topic));
+    out.push(topic);
+    if (out.length === n) break;
+  }
+  return out;
+}
+
 /** 모델이 없을 때의 답. 근거는 모델이 받는 것과 같은 위키입니다. */
 export function wikiAnswer(query: string): string {
   return compose(query, retrieve(query, 2));
@@ -220,6 +246,13 @@ export function polish(raw: string): string {
 
   // 말을 시작하기 전에 붙는 군더더기. 사람은 "답변:"이라고 말하고 답하지 않습니다.
   t = t.replace(/^\s*(?:답변|답|응답|정답|assistant|answer|안내자|ai)\s*[:：]\s*/i, '');
+  /* 인사로 운을 떼는 습관. 프롬프트로는 안 잡힙니다 — "인사말로 시작하지 않는다"를 못 박아도
+     Gemma 3 1B는 "안녕하세요."로 시작합니다. 답의 분량이 2~4문장인데 그중 하나가 인사면
+     아깝습니다.
+
+     뒤따르는 자기소개("저는 박상욱입니다")는 남깁니다. 같이 떼 봤더니 답이 "의료관광 플랫폼
+     ZIVO의 풀스택 리드 개발자입니다."로 시작해서, 누구 이야기인지가 문장에서 사라졌습니다. */
+  t = t.replace(/^\s*(?:안녕하세요|안녕하십니까|반갑습니다)[.,!]?\s*/, '');
   t = t.replace(/(?:^|(?<=[.!?]\s))(?:위 |제공된 |주어진 |해당 )?자료에 (?:따르면|의하면|나와 ?있는 대로)[,:]?\s*/g, '');
 
   const out: string[] = [];
@@ -252,4 +285,38 @@ export function polish(raw: string): string {
   }
 
   return out.join('\n').trim();
+}
+
+/** 토큰 예산이 다해 문장 한가운데서 멎은 답을, 마지막 온전한 문장까지만 남깁니다.
+
+    예산에서 끊긴 답은 "…ArchUnit 강제로 세웠고," 처럼 쉼표로 끝납니다. 방문자에게는
+    모델이 말하다 만 것이 아니라 화면이 답을 잘라먹은 것으로 보입니다.
+
+    끊겼다는 사실을 아는 쪽에서만 부릅니다(워커의 capped, Ollama의 done_reason). 스스로
+    멈춘 답이나 흐르는 도중에 부르면, 멀쩡하게 끝난 마지막 문장을 지웁니다. */
+export function trimDangling(text: string): string {
+  const lines = text.split('\n');
+
+  /* 열린 채 끊긴 코드 울타리는 여는 줄부터 통째로 버립니다. 반쪽 코드는 복사해 봐야
+     못 쓰고, Markdown은 닫히지 않은 울타리도 그대로 그리므로 안 지우면 화면에 남습니다. */
+  let open = -1;
+  lines.forEach((l, i) => { if (FENCE.test(l)) open = open < 0 ? i : -1; });
+  if (open >= 0) lines.length = open;
+
+  const dropBlanks = () => { while (lines.length && !lines[lines.length - 1].trim()) lines.pop(); };
+  dropBlanks();
+
+  // 이미 문장으로 끝났거나 울타리를 닫았으면, 예산이 다했더라도 손댈 것이 없습니다.
+  const last = lines[lines.length - 1];
+  if (last && !FENCE.test(last) && !/[.!?…][)"'”’\]]*$/.test(last.trimEnd())) {
+    lines.pop();
+    // 줄 앞 들여쓰기는 목록의 중첩 단계라 돌려놓습니다. 남는 문장이 없으면 줄째로 사라집니다.
+    const kept = sentences(last).slice(0, -1);
+    if (kept.length) lines.push(last.match(/^\s*/)![0] + kept.join(' '));
+    dropBlanks();
+  }
+
+  // trim()이 아닙니다 — 첫 줄이 중첩 목록이면 그 들여쓰기가 곧 단계라 지워선 안 됩니다.
+  while (lines.length && !lines[0].trim()) lines.shift();
+  return lines.join('\n').trimEnd();
 }

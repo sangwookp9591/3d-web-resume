@@ -27,13 +27,19 @@ const csp = [
   // 인라인 style 속성(--share 같은 CSS 변수)을 쓰므로 스타일 쪽은 열어 둡니다.
   "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
   "font-src 'self' https://cdn.jsdelivr.net",
-  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+  /* blob:이 반드시 있어야 합니다. onnxruntime-web은 자기 백엔드 모듈을 Blob으로 감싸
+     import()하는데, 동적 import는 worker-src가 아니라 script-src가 다스립니다. 빼면
+     워커 안에서 "no available backend found"로 끝나고 — 워커 콘솔에만 남습니다 —
+     방문자에게는 "모델을 못 올렸습니다"만 보입니다. */
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:",
   "worker-src 'self' blob:",
-  /* 모델 가중치(huggingface.co → hf.co CDN 리다이렉트)와 로컬 Ollama.
+  /* 모델 가중치(huggingface.co → hf.co CDN 리다이렉트), onnxruntime-web의 wasm(jsDelivr),
+     그리고 로컬 Ollama. jsDelivr은 폰트 때문에 style-src·font-src에만 적혀 있었는데,
+     ORT가 같은 CDN에서 wasm을 받아 오므로 connect-src에도 있어야 합니다.
      blob:이 반드시 있어야 합니다. worker-src에만 넣어 두면 워커는 뜨지만, onnxruntime-web이
      그 워커 안에서 wasm과 가중치를 blob: URL로 다시 fetch하는 순간 connect-src에 걸립니다.
      증상이 조용합니다 — 화면은 멀쩡하고 콘솔에만 남으며, 방문자는 그냥 위키 답만 받습니다. */
-  "connect-src 'self' blob: https://huggingface.co https://*.huggingface.co https://*.hf.co http://localhost:11434",
+  "connect-src 'self' blob: https://huggingface.co https://*.huggingface.co https://*.hf.co https://cdn.jsdelivr.net http://localhost:11434",
 ].join('; ');
 
 /* 나중에 무언가를 붙일 때 여기를 먼저 보세요. Vercel Analytics·Speed Insights처럼 스크립트를

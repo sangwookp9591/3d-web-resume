@@ -9,13 +9,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useOracleBrain from './brain';
 import Markdown from './Markdown';
-import { polish } from '@/lib/answer';
+import { polish, suggest } from '@/lib/answer';
 import type { MorphField } from './morph';
 
 type Brain = ReturnType<typeof useOracleBrain>;
 
-/** 로그 한 줄. pending은 답이 아직 흐르는 중이라는 표시입니다. */
-type Turn = { role: 'you' | 'aing'; text: string; id: string; pending?: boolean };
+/** 로그 한 줄. pending은 답이 아직 흐르는 중이라는 표시입니다.
+    tips는 이 답 아래에 붙는 다음 질문거리 — 답이 끝난 뒤에 한 번만 정합니다. */
+type Turn = { role: 'you' | 'aing'; text: string; id: string; pending?: boolean; tips?: string[] };
 
 const PROMPTS = [
   'iron은 어떤 개발자인가요?',
@@ -176,13 +177,23 @@ export default function Oracle() {
     wasOpen.current = open;
   }, [open]);
 
-  const ask = async (e?: React.FormEvent<HTMLFormElement>) => {
-    e?.preventDefault();
-    const text = q.trim();
+  /* 질문은 입력칸에서도 오고 추천 칩에서도 옵니다. 칩 쪽에 setQ→submit을 태우면
+     한 렌더 늦게 읽혀 빈 질문이 나가므로, 문자열을 그대로 받습니다. */
+  const ask = async (raw?: string) => {
+    const text = (raw ?? q).trim();
     if (!text || busy) return;
     setQ('');
     setBusy(true);
     fieldRef.current?.stir(1);                 // 생각하는 동안 막이 술렁입니다
+
+    /* 다음 질문거리. 위키가 내주는 화제가 먼저입니다 — 실제로 답이 있는 화제라
+       눌렀을 때 빈손이 되지 않습니다. 검색이 조각 하나만 물어 온 질문("상욱은요?")에는
+       내줄 화제가 없으므로, 그때만 첫 화면의 예시 질문 중 아직 안 물어본 것을 씁니다. */
+    const asked = [...turns.filter((t) => t.role === 'you').map((t) => t.text), text];
+    const nextTips = (qq: string) => {
+      const found = suggest(qq, asked);
+      return found.length ? found : PROMPTS.filter((p) => !asked.includes(p)).slice(0, 3);
+    };
 
     const id = String(Date.now());
     const patch = (fn: (v: Turn) => Partial<Turn>) => setTurns((t) => t.map((v) => (v.id === id ? { ...v, ...fn(v) } : v)));
@@ -192,9 +203,9 @@ export default function Oracle() {
       const full = await brain.ask(text, (piece) => patch((v) => ({ text: v.text + piece })));
       // 반환값이 언제나 최종본입니다. 스트리밍 도중 엔진이 죽으면 brain이 위키 답을 돌려주는데,
       // 그때 이미 흘러온 반토막을 남겨두면 잘린 문장이 완성된 답처럼 보입니다.
-      patch(() => ({ text: full, pending: false }));
+      patch(() => ({ text: full, pending: false, tips: nextTips(text) }));
     } catch (err) {
-      patch(() => ({ text: `답을 만들지 못했습니다: ${(err as Error).message}`, pending: false }));
+      patch(() => ({ text: `답을 만들지 못했습니다: ${(err as Error).message}`, pending: false, tips: nextTips(text) }));
     } finally {
       setBusy(false);
       fieldRef.current?.stir(0);
@@ -260,17 +271,37 @@ export default function Oracle() {
                      brain.say()가 이미 다듬어 저장한 것이라 다시 통과시켜도 같은 글자입니다.
                      로그 전체를 토큰마다 다시 다듬을 이유가 없습니다. */
                   const body = t.pending ? polish(t.text) : t.text;
+                  /* 추천은 마지막 답 아래에만 답니다. 모든 답마다 달면 로그가 칩 밭이 되고,
+                     지난 답 밑의 칩은 이미 지나간 갈림길이라 누를 이유도 없습니다. */
+                  const tips = i === turns.length - 1 && !t.pending ? t.tips : undefined;
                   return (
-                    <div className={`orc__turn orc__turn--aing${body ? '' : ' is-empty'}`} key={t.id ?? i}>
-                      {body
-                        ? <Markdown text={body} />
-                        : <span className="orc__dots" aria-label="생각 중"><i /><i /><i /></span>}
+                    <div key={t.id ?? i}>
+                      <div className={`orc__turn orc__turn--aing${body ? '' : ' is-empty'}`}>
+                        {body
+                          ? <Markdown text={body} />
+                          : <span className="orc__dots" aria-label="생각 중"><i /><i /><i /></span>}
+                      </div>
+                      {tips && tips.length > 0 && (
+                        <div className="orc__tips">
+                          <p className="orc__tips__lead">이런 것도 물어보세요</p>
+                          <ul>
+                            {tips.map((tip) => (
+                              <li key={tip}>
+                                <button type="button" className="orc__tip" disabled={busy}
+                                  onClick={() => void ask(tip)} tabIndex={open ? 0 : -1}>
+                                  {tip}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
           </div>
 
-          <form className="orc__form" onSubmit={ask}>
+          <form className="orc__form" onSubmit={(e) => { e.preventDefault(); void ask(); }}>
             <input
               ref={inputRef}
               className="orc__input"
