@@ -88,7 +88,7 @@ export default async function Colophon() {
         </section>
       </div>
 
-      <p className="colophon__lead">제품의 경계를 같이 정리할 사람이 필요하다면, 메일 한 통이면 됩니다.</p>
+      <p className="colophon__lead">같이 풀 문제를 이야기해 주세요.</p>
       <a className="colophon__mail" href={`mailto:${PERSON.email}`}>{PERSON.email}</a>
       <p className="colophon__meta">
         {PERSON.name} (iron) · {PERSON.employer} · 2025.10 – 2026.07
