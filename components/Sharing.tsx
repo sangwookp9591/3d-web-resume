@@ -6,7 +6,7 @@ export default function Sharing() {
   return (
     <section className="slab share" id="sharing" data-stage="sharing">
       <div className="slab__head">
-        <h2 className="slab__title">좋은 걸 찾으면 혼자 안 씁니다</h2>
+        <h2 className="slab__title">팀이 같은 판단을 다시 하지 않게 남겼습니다</h2>
         <p className="share__lead">{SHARES_LEAD}</p>
       </div>
 

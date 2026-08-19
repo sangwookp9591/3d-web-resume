@@ -45,10 +45,10 @@ export const PERSON = {
      @핸들로는 404가 나므로 채널 페이지에서 한 번 꺼내 여기 적어 둡니다. */
   youtubeChannelId: 'UCuzvnXas0mUqueHOqtoOPeQ',
   jobTitle: '풀스택 개발자',
-  headline: '제품을 만들고, 팀의 작업 방식을 설계하는 개발자',
+  headline: '제품이 무너지기 쉬운 지점을 먼저 찾아 고치는 풀스택 개발자',
   summary:
     '의료관광 플랫폼 ZIVO의 웹(단독)·어드민(리드)·백엔드(최다 기여) 3개 저장소에서 9개월간 5,240여 커밋. ' +
-    '아키텍처 규율을 도구로 집행하고, 실패 경로를 먼저 설계합니다.',
+    '앱보다 웹을 먼저 출시하고, 결제·권한·검색·쿠폰의 실패 경로를 제품 구조 안에서 다뤘습니다.',
   employer: 'ZIVO Medical Tourism Platform',
   period: { start: '2025-10', end: '2026-07' },
   skills: [
