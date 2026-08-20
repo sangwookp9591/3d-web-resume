@@ -17,13 +17,13 @@ export default function Cover() {
           {/* 줄바꿈은 두 번까지입니다. 세 줄이 되면 이름 판이 검색창 자리를 넘어
               화면 밖으로 밀려 올라갑니다(1440×900에서 73px이 잘렸습니다). */}
           <h1 className="plate__title">
-            안녕하세요,<br />
-            <span className="plate__title-mark">새로운 건 일단 해봅니다.</span>
+            화면부터 서버까지,<br />
+            <span className="plate__title-mark">막힐 자리를 미리 없앱니다.</span>
           </h1>
           <p className="plate__body">
-            의료관광 플랫폼 ZIVO에서 웹·어드민·백엔드를 만들었습니다. 새 도구가 나오면 제가 먼저
-            써보고 팀에 가져갔고, 막힐 것 같은 자리는 터지기 전에 미리 없앴습니다.
-            저에 대해 좀 더 알아보시겠어요?
+            해외 환자와 병원을 잇는 의료관광 플랫폼 ZIVO에서 웹 단독 구축부터 어드민 인프라,
+            백엔드 코어까지 도맡았습니다. 장애가 난 뒤 수습하기보다 실패할 경로를 먼저 찾아 지우고,
+            팀이 마주한 병목을 도구로 풀어왔습니다.
           </p>
         </div>
 
@@ -40,7 +40,7 @@ export default function Cover() {
         </dl>
 
         <a className="cue" href="#world">
-          <span className="cue__text">스크롤하면 그 이야기 안으로 같이 들어갑니다</span>
+          <span className="cue__text">스크롤을 내리면 문제 해결 과정으로 이어집니다</span>
           <span className="cue__rule" aria-hidden="true" />
           <span className="cue__chev" aria-hidden="true" />
         </a>
