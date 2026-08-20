@@ -13,17 +13,17 @@ export default function Cover() {
     <CoverParallax>
       <div className="cover__stage">
         <div className="plate plate--name">
-          <p className="plate__kicker">박상욱 · iron</p>
+          <p className="plate__kicker">풀스택 개발자 박상욱 · iron</p>
           {/* 줄바꿈은 두 번까지입니다. 세 줄이 되면 이름 판이 검색창 자리를 넘어
               화면 밖으로 밀려 올라갑니다(1440×900에서 73px이 잘렸습니다). */}
           <h1 className="plate__title">
-            문제가 생길 것 같아서,<br />
-            <span className="plate__title-mark">미리 없앴습니다.</span>
+            안녕하세요,<br />
+            <span className="plate__title-mark">새로운 건 일단 해봅니다.</span>
           </h1>
           <p className="plate__body">
-            ZIVO에서 웹·어드민·백엔드를 만들었습니다. 기능만 만든 건 아니고요. 사용자가 어디서 멈출지,
-            기획자와 디자이너가 어디서 “이건 좀 애매한데?” 할지를 먼저 눌러봤습니다. 터진 다음에
-            허둥대는 것보다 그게 빨랐습니다.
+            의료관광 플랫폼 ZIVO에서 웹·어드민·백엔드를 만들었습니다. 새 도구가 나오면 제가 먼저
+            써보고 팀에 가져갔고, 막힐 것 같은 자리는 터지기 전에 미리 없앴습니다.
+            저에 대해 좀 더 알아보시겠어요?
           </p>
         </div>
 
