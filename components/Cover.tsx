@@ -13,17 +13,19 @@ export default function Cover() {
     <CoverParallax>
       <div className="cover__stage">
         <div className="plate plate--name">
-          <p className="plate__kicker">풀스택 개발자 박상욱 · iron</p>
+          {/* 이름은 아래 h1이 말하므로 여기서는 뺍니다 — 눈이 두 번 읽을 이유가 없습니다. */}
+          <p className="plate__kicker">풀스택 개발자 · iron</p>
           {/* 줄바꿈은 두 번까지입니다. 세 줄이 되면 이름 판이 검색창 자리를 넘어
-              화면 밖으로 밀려 올라갑니다(1440×900에서 73px이 잘렸습니다). */}
+              화면 밖으로 밀려 올라갑니다(1440×900에서 73px이 잘렸습니다).
+              두 번째 줄은 13~14자가 한계입니다 — 그보다 길면 거기서 한 번 더 접힙니다. */}
           <h1 className="plate__title">
-            화면부터 서버까지,<br />
-            <span className="plate__title-mark">막힐 자리를 미리 없앱니다.</span>
+            안녕하세요,<br />
+            <span className="plate__title-mark">박상욱입니다.</span>
           </h1>
           <p className="plate__body">
-            해외 환자와 병원을 잇는 의료관광 플랫폼 ZIVO에서 웹 단독 구축부터 어드민 인프라,
-            백엔드 코어까지 도맡았습니다. 장애가 난 뒤 수습하기보다 실패할 경로를 먼저 찾아 지우고,
-            팀이 마주한 병목을 도구로 풀어왔습니다.
+            해외 환자와 병원을 잇는 의료관광 플랫폼 ZIVO에서 아홉 달 동안 일했습니다. 손님이 보는
+            화면부터 그 뒤의 서버까지 만들었고, 장애가 난 뒤에 수습하기보다 막힐 자리를 먼저 찾아
+            지우는 편입니다. 저에 대해 좀 더 알아보시겠어요?
           </p>
         </div>
 
