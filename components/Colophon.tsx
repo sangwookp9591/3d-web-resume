@@ -88,7 +88,7 @@ export default async function Colophon() {
         </section>
       </div>
 
-      <p className="colophon__lead">같이 풀 문제를 이야기해 주세요.</p>
+      <p className="colophon__lead">요즘 어디서 막히고 계신지, 들어보고 싶습니다.</p>
       <a className="colophon__mail" href={`mailto:${PERSON.email}`}>{PERSON.email}</a>
       <p className="colophon__meta">
         {PERSON.name} (iron) · {PERSON.employer} · 2025.10 – 2026.07

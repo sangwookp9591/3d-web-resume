@@ -19,21 +19,21 @@ type Brain = ReturnType<typeof useOracleBrain>;
 type Turn = { role: 'you' | 'aing'; text: string; id: string; pending?: boolean; tips?: string[] };
 
 const PROMPTS = [
-  'iron은 어떤 개발자인가요?',
-  '프론트엔드에서 무엇을 만들었나요?',
-  '권한 시스템은 어떻게 설계했나요?',
-  '테스트 플레이크를 어떻게 0으로 만들었나요?',
-  '쿠폰 도메인을 왜 새로 설계했나요?',
-  '어떤 기술 스택을 쓰나요?',
+  'iron은 어떤 개발자예요?',
+  '프론트엔드에서 뭘 만들었어요?',
+  '권한은 어떻게 정리했어요?',
+  '테스트가 들쭉날쭉했을 텐데 어떻게 잡았어요?',
+  '쿠폰은 왜 새로 만들었어요?',
+  '어떤 걸로 개발해요?',
 ];
 
 const engineLabel = (brain: Brain) => {
   const name = brain.model.label;
   if (brain.status === 'loading') return `${name} 내려받는 중 ${Math.round(brain.progress * 100)}%`;
-  if (brain.status === 'error') return `${name}를 못 올렸습니다 · 위키로 답합니다`;
+  if (brain.status === 'error') return `${name}를 못 띄웠습니다 · 위키로 답할게요`;
   if (brain.engine === 'ollama') return 'Ollama · 이 컴퓨터에서';
   if (brain.engine === 'local') return `${name} · 브라우저 안에서`;
-  return '위키에서 직접 인용';
+  return '위키에서 그대로 옮겨 옵니다';
 };
 
 /* 신기루: 글자가 하나씩 흐려지며 맺혔다가 다시 하나씩 증발합니다.
@@ -261,7 +261,7 @@ export default function Oracle() {
               다시 읽지 않고, 끝난 뒤에 한 번 읽습니다. */}
           <div className="orc__log" ref={logRef} role="log" aria-live="polite" aria-busy={!!streaming}>
             {turns.length === 0
-              ? <p className="orc__hint">이력이든 저장소든 기술 스택이든, 궁금한 걸 그냥 물어보세요.</p>
+              ? <p className="orc__hint">이력이든 저장소든 쓰는 도구든, 편하게 물어보세요. 아는 데까지 답합니다.</p>
               : turns.map((t, i) => {
                   if (t.role === 'you') {
                     return <p className="orc__turn orc__turn--you" key={t.id ?? i}>{t.text}</p>;
@@ -283,7 +283,7 @@ export default function Oracle() {
                       </div>
                       {tips && tips.length > 0 && (
                         <div className="orc__tips">
-                          <p className="orc__tips__lead">이런 것도 물어보세요</p>
+                          <p className="orc__tips__lead">이런 것도 궁금하실 것 같은데요</p>
                           <ul>
                             {tips.map((tip) => (
                               <li key={tip}>

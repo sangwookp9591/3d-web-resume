@@ -50,10 +50,10 @@ export default function CharacterKit() {
   return (
     <section className="kit" id="aing" data-stage="kit">
       <div className="kit__head">
-        <h2 className="kit__title">여기까지 안내한 고양이는, 쓸 수 있는 에셋입니다</h2>
+        <h2 className="kit__title">여기까지 안내한 고양이, 그냥 데려가셔도 됩니다</h2>
         <p className="kit__lead">
-          표정과 액션을 시트로 뽑고, 모션은 알파 애니메이션으로, 형태는 3D 모델로 만들었습니다.
-          웹은 물론 three.js·WebGPU·Unity에서 바로 쓸 수 있게 아틀라스와 매니페스트까지 맞춰 뒀습니다.
+          페이지 장식으로 두기엔 아까워서 표정과 액션을 시트로 뽑고, 모션은 알파 애니메이션으로,
+          형태는 3D로 만들었습니다. three.js든 Unity든 열자마자 붙게 아틀라스와 매니페스트까지 맞춰 뒀고요.
         </p>
       </div>
 

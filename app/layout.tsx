@@ -39,7 +39,7 @@ export const metadata = {
     siteName: 'iron — Engineering Story',
     title: `${PERSON.name} (iron) — Engineering Story`,
     description:
-      '기능 구현을 넘어 FSD/DDD 아키텍처 규율, ArchUnit·codemod 기반 자동 집행, 팀 규약 문서화로 팀의 개발 방식을 설계합니다.',
+      '규칙은 문서에 적어 두면 흩어지길래, 도구가 대신 확인하게 했습니다. 15명이 같은 코드를 만지는 곳에서 같은 실수가 두 번 나지 않게 만든 이야기입니다.',
     images: [{ url: '/assets/scene-5.webp', width: 1536, height: 1024, alt: '정합성 — 금고와 수로' }],
   },
   twitter: {

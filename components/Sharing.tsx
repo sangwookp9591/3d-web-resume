@@ -6,7 +6,7 @@ export default function Sharing() {
   return (
     <section className="slab share" id="sharing" data-stage="sharing">
       <div className="slab__head">
-        <h2 className="slab__title">팀이 같은 판단을 다시 하지 않게 남겼습니다</h2>
+        <h2 className="slab__title">같은 고민을 두 번 하지 않게, 찾은 건 팀에 던졌습니다</h2>
         <p className="share__lead">{SHARES_LEAD}</p>
       </div>
 
@@ -30,8 +30,8 @@ export default function Sharing() {
       <div className="share__foot">
         <p className="share__close">
           OCR 테스트가 필요하다길래 웹 버전을 만들어 브랜치에 올렸습니다. API 키 받는 법과
-          README 설정, 숨김 파일 보는 법까지 적어 뒀고요. 정리하자면
-          <strong> 새로 나온 걸 팀이 오늘 바로 쓸 수 있는 형태까지 만들어 두는 편</strong>입니다.
+          README 설정, 숨김 파일 보는 법까지 적어 뒀고요. 그러니까
+          <strong> 새로 나온 건 팀이 오늘 바로 써 볼 수 있는 데까지 만들어 두는 편</strong>입니다.
         </p>
       </div>
     </section>

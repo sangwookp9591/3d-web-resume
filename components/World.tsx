@@ -1,4 +1,5 @@
 import { sections } from '@/lib/worldConfig';
+import Route from './Route';
 import WorldMount from './WorldMount';
 
 /* 픽셀 여정. 아잉은 클라이언트가 걷게 하지만, 다섯 장소의 글은 여기서 서버가 그립니다.
@@ -13,14 +14,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 export default function World() {
   return (
     <WorldMount>
-      {/* 씬 사이 이동. 앵커라서 JS 없이도, 키보드로도 갑니다. */}
-      <nav className="px-route" aria-label="여정의 다섯 장소">
-        <ol>
-          {sections.map((s) => (
-            <li key={s.id}><a href={`#${s.id}`}><span>{s.label}</span></a></li>
-          ))}
-        </ol>
-      </nav>
+      <Route />
 
       {sections.map((s, i) => (
         <section

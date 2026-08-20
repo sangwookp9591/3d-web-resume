@@ -17,12 +17,13 @@ export default function Cover() {
           {/* 줄바꿈은 두 번까지입니다. 세 줄이 되면 이름 판이 검색창 자리를 넘어
               화면 밖으로 밀려 올라갑니다(1440×900에서 73px이 잘렸습니다). */}
           <h1 className="plate__title">
-            웹으로 먼저 확인하고,<br />
-            <span className="plate__title-mark">막힐 곳은 미리 닫습니다.</span>
+            문제가 생길 것 같아서,<br />
+            <span className="plate__title-mark">미리 없앴습니다.</span>
           </h1>
           <p className="plate__body">
-            ZIVO에서 웹·어드민·백엔드를 만들었습니다. 처음엔 웹으로 시작했고, 만들면서 만난 문제를
-            다음 사람이 다시 겪지 않게 고쳤습니다. 그 과정을 천천히 보여드립니다.
+            ZIVO에서 웹·어드민·백엔드를 만들었습니다. 기능만 만든 건 아니고요. 사용자가 어디서 멈출지,
+            기획자와 디자이너가 어디서 “이건 좀 애매한데?” 할지를 먼저 눌러봤습니다. 터진 다음에
+            허둥대는 것보다 그게 빨랐습니다.
           </p>
         </div>
 
@@ -39,7 +40,7 @@ export default function Cover() {
         </dl>
 
         <a className="cue" href="#world">
-          <span className="cue__text">스크롤하면 이 이야기 안으로 들어갑니다</span>
+          <span className="cue__text">스크롤하면 그 이야기 안으로 같이 들어갑니다</span>
           <span className="cue__rule" aria-hidden="true" />
           <span className="cue__chev" aria-hidden="true" />
         </a>

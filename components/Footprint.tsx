@@ -6,7 +6,7 @@ export default function Footprint() {
   return (
     <section className="slab" id="footprint" data-stage="footprint">
       <div className="slab__head">
-        <h2 className="slab__title">같은 제품을 세 저장소에서 이어 붙였습니다</h2>
+        <h2 className="slab__title">저장소는 셋인데, 만든 건 하나였습니다</h2>
       </div>
       <ul className="repos">
         {REPOS.map((r) => (

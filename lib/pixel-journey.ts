@@ -201,6 +201,14 @@ export default function mountPixelJourney(container: HTMLElement) {
      스크롤 길이는 짧은 채로 남아 다섯 장이 그대로 읽힙니다. */
   container.dataset.pxUp = '1';
 
+  /* 방금 스크롤 길이가 늘어났으므로 씬의 자리를 다시 잽니다. layout() 안의 measure()는
+     이 줄 전에 돌아서 늘어나기 전의 tops/heights를 들고 있습니다 — 그대로 두면 카메라가
+     실제 씬보다 앞서 가서, 씬이 셋 남았는데 여정은 끝나 있습니다(실측 3931px 차이).
+     위의 load 리스너로는 메울 수 없습니다. 엔진은 하이드레이션 때 동적 import로 오므로
+     (WorldMount) load보다 먼저 도착할 수도 늦게 도착할 수도 있고, 늦으면 그 리스너는 영영
+     불리지 않습니다. 늘린 자리에서 바로 재는 것만이 도착 순서에 기대지 않습니다. */
+  measure();
+
   // 첫 프레임은 여기서 잡아 둡니다 — io가 먼저 깨어나도 루프가 두 벌 돌지 않게.
   raf = requestAnimationFrame(frame);
 }

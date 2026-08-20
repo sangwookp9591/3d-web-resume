@@ -14,7 +14,7 @@ export default function Media() {
   return (
     <section className="slab media" id="media" data-stage="media">
       <div className="slab__head">
-        <h2 className="slab__title">ZIVO 전의 일도, 같은 문제를 다뤘습니다</h2>
+        <h2 className="slab__title">ZIVO 전에도, 막히던 자리는 비슷했습니다</h2>
         <p className="media__lead">{MEDIA_LEAD}</p>
       </div>
 
