@@ -4,51 +4,77 @@
 
 # 3d-web-resume
 
-**스크롤이 카메라를 움직이는 이력서.**
-구름 위에 떠 있는 다섯 개의 섬 안으로 차례로 날아 들어갑니다.
-섬 하나가 실제 기여 사례 하나고, 마스코트 **Ai-ng(아잉)** 이 지금 보고 있는 장면을 설명합니다.
+**질문을 받는 이력서.**
+
+구름 위에 유리판이 떠 있고, 한복판의 검색창은 누르면 그 자리에서 자라 채팅창이 됩니다.
+아래로 내려가면 스크롤이 카메라가 되어 다섯 장소 안으로 걸어 들어갑니다.
+마스코트 **Ai-ng(아잉)** 이 지금 보고 있는 장면을 옆에서 설명합니다.
 
 <br />
 
 ![Next.js](https://img.shields.io/badge/Next.js-16.3%20App%20Router-000000?logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
-![three.js](https://img.shields.io/badge/three.js-WebGPU-000000?logo=threedotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178C6?logo=typescript&logoColor=white)
+![WebGPU](https://img.shields.io/badge/WebGPU-파티클%20·%20온디바이스%20LLM-000000?logo=webgpu&logoColor=white)
 ![AEO](https://img.shields.io/badge/AEO-JSON--LD%20·%20llms.txt%20·%20text%2Fmarkdown-7C9EE8)
-![Bundle](https://img.shields.io/badge/초기%20번들-185KB%20gzip-blue)
+![Bundle](https://img.shields.io/badge/초기%20JS-198KB%20gzip-blue)
 
 <br />
 
-<img src="docs/screens/cover.webp" alt="커버 — 구름 위의 리퀴드 글래스 명함" width="880" />
+<img src="docs/screens/cover.webp" alt="커버 — 구름 위의 리퀴드 글래스 판과 검색창" width="880" />
 
-<img src="docs/screens/expr-strip.webp" alt="Ai-ng 표정 시트" width="880" />
+<br />
+
+<img src="docs/screens/oracle.webp" alt="같은 검색창이 그 자리에서 자라 채팅창이 된 상태" width="880" />
 
 </div>
 
 ---
 
-## 어떻게 동작하나
+## 한 페이지에 무엇이 있나
 
-스크롤은 재생이 아니라 **아잉의 걸음**입니다. 스크롤 위치가 곧 캐릭터의 x 좌표이고, 다섯
-장소를 순간이동 없이 걸어서 지나갑니다. 멈추면 아잉도 멈추고 `idle`로 돌아갑니다.
+라우트는 `/` 하나입니다. 그 아래 여덟 블록이 한 문서로 이어져 있고, 오라클과 아잉만 그 흐름
+위에 떠 있습니다. 1440×900에서 문서 전체 높이는 **16,999px — 뷰포트 18.9개분**입니다.
 
 ```
-[새벽 숲 오두막] → [강의 돌다리] → [문지기 초소] → [언덕 전망대] → [해질녘 창고]
-      ↑ 스크롤 위치 = 카메라 x = 아잉의 x
-   하늘 0.2 · 배경 0.6 · 지면과 아잉 1.0 · 전경 소품 1.15
+.sky                하늘 한 장 (fixed · 스크롤해도 움직이지 않음)
+ │
+ ├─ ① 커버          이름판 · 오라클 · 통계 넷 · 스크롤 안내        900px
+ ├─ ② 픽셀 여정     다섯 장면 — 기원·검증·규율·지능·정합성      8,415px  ← 문서의 절반
+ ├─ ③ 저장소 발자국 세 저장소 기여도 막대                          703px
+ ├─ ④ 영상·오디오   업로드 파이프라인 + 4년 이력                 1,433px
+ ├─ ⑤ 공유 로그     팀 채널에 올린 글 9건                        1,889px
+ ├─ ⑥ 일하는 방식   원칙 셋                                        902px
+ ├─ ⑦ 마스코트 킷   3D 뷰어 + 모션·표정·액션 시트                1,981px
+ └─ ⑧ 콜로폰       GitHub · YouTube 피드 · 메일                   776px
+
+  아잉  오른쪽 아래 고정 · 스크롤 위치에 따라 대사 교체
 ```
 
-걷기는 스크롤 속도가 아니라 **시계**가 굴립니다(8fps 고정). 휙 넘겨도 리듬이 무너지지 않습니다.
-씬의 글은 캔버스가 아니라 서버가 그린 DOM이고, 화면에 붙잡아 두는 것은 JS가 아니라
-`position: sticky`입니다 — 엔진이 없어도, 모션을 줄여 달라고 해도 다섯 장은 그대로 읽힙니다.
+어느 블록에 어떤 글이 어디서 오는지는 [docs/screen-map.md](docs/screen-map.md)에 있습니다.
+여기 README는 **어떻게 동작하나**만 다룹니다.
 
-<img src="docs/screens/world.webp" alt="규율 — 서로 다른 구멍의 문 다섯 개" />
+---
+
+## ① 커버 — 판이 세 장이 아니라 방 하나
+
+이름판·검색창·통계판이 서로 다른 깊이에 떠 있습니다. 포인터는 판을 움직이지 않고 **카메라를**
+움직입니다 — 그래서 시차가 느슨한 카드 세 장이 아니라 하나의 방으로 읽힙니다. 클라이언트로
+넘어가는 것은 포인터를 CSS 변수로 옮기는 래퍼(`CoverParallax`) 하나뿐이고, 글자는 전부
+서버에서 나옵니다.
+
+| 5,240+ | 3개 전 영역 | 98% | 440건 |
+|:-:|:-:|:-:|:-:|
+| 9개월간의 커밋 | 웹 · 어드민 · 백엔드 리드 | 글로벌 웹 단독 구축 | 안정적으로 머지된 PR |
+
+이름판 다음에 오는 것이 방문자의 질문이라서, 검색창은 장식이 아니라 **화면 한복판**입니다.
 
 ---
 
 ## 오라클 — 검색창이 그대로 자라 채팅창이 된다
 
-화면 한가운데 유리 검색창이 하나 떠 있습니다. 누르면 **새 창이 열리는 게 아니라 그 판이
-그 자리에서 커져** 채팅창이 됩니다. 페이지 이동도, 레이어 교체도 없습니다.
+누르면 **새 창이 열리는 게 아니라 그 판이 그 자리에서 커집니다.** 페이지 이동도, 레이어
+교체도 없습니다.
 
 | 층 | 무엇을 하나 |
 |---|---|
@@ -77,7 +103,8 @@
 점수 높은 문장을 흩어 모으면 "쿠폰을 왜 새로 설계했나"에 테스트 컨테이너 이야기가 붙습니다.
 모델 쪽은 반대로 사고 과정 태그, `### 요약` 같은 빈 제목, "자료에 따르면", 같은 문장 반복을 걷어냅니다.
 스트리밍 중에도 매 토큰 다듬으므로 속엣말이 화면에 흐르지 않습니다.
-그리고 답은 마크다운으로 그립니다 — 파서 없이 문단·목록·강조·코드·링크만, React 엘리먼트로 직접(`components/oracle/Markdown.tsx`).
+그리고 답은 마크다운으로 그립니다 — 파서 없이 문단·목록·강조·코드·링크만, React 엘리먼트로
+직접(`components/oracle/Markdown.tsx`).
 
 모델이 하는 일은 *지식을 꺼내는 것*이 아니라 **검색된 위키 문단을 두어 문장으로 다듬는 것**입니다.
 그래서 한동안 기본이 570MB Qwen3 0.6B였는데, 실제 답이 그 계산을 뒤집었습니다 —
@@ -102,17 +129,17 @@ Ollama가 도는 컴퓨터와 WebGPU가 없는 브라우저는 763MB를 건드�
 
 ### 무엇을 근거로 답하나
 
-근거는 셋 다 같은 위키(`lib/wiki.ts`) **26개 조각**입니다. PAR 이력서의
+근거는 셋 다 같은 위키(`lib/wiki.ts`) **28개 조각**입니다. PAR 이력서의
 Problem·Analyze·Action·Result를 옮겨서, 무엇을 했는지뿐 아니라 **어떤 선택지를 왜 골랐는지**까지 답합니다.
 
 | 갈래 | 조각 |
 |---|---|
-| 개요 | 종합 프로필 · 세 저장소 포지션 |
-| FRONT | 웹 0→1(14개 언어) · 결제 실패 경로 · E2E 하네스 |
-| ADMIN | RBAC 하이브리드 권한 · 공통 인프라와 팀 규약 |
-| BACK | 도메인 개요 · OpenSearch 재색인 · 멀티 LLM 회복탄력 · 쿠폰 DDD/Outbox |
+| 개요 | 종합 프로필 · 세 저장소 포지션 · 경력 |
+| FRONT | 웹 0→1(14개 언어) · 결제 실패 경로 · E2E 하네스 · 장바구니 · 다국어 |
+| ADMIN | RBAC 하이브리드 권한 · 공통 인프라와 팀 규약 · 가맹 운영 |
+| BACK | 도메인 개요 · 모듈 구조 · OpenSearch 재색인 · 멀티 LLM 회복탄력 · 쿠폰 DDD/Outbox · 프로모션 |
 | 팀 | 에이전트 스킬 CLI와 PR 자동 리뷰 · **공유 기록**(팀 채널에 올린 것들) |
-| 그 외 | 일하는 방식 · 스택 · 이 사이트 · 연락 · **하지 않은 일** |
+| 그 외 | 일하는 방식 · 스택 · 영상·오디오 이력 · 이 사이트 · 연락 · **하지 않은 일** |
 
 마지막 조각이 중요합니다. RAG/pgvector는 계획 흔적만 있고 구현이 없으며, 백엔드 결제 코어는
 다른 기여자 소유입니다. **모델이 넘지 말아야 할 선을 근거 안에 적어 둡니다.**
@@ -128,15 +155,29 @@ Problem·Analyze·Action·Result를 옮겨서, 무엇을 했는지뿐 아니라 
   "쿠폰은 왜 새로 설계했어?"에 결제 조각이 1등을 합니다
 
 ```bash
-npm run check   # 44개 체크. 엉뚱한 조각이 1등이면 실패
+npm run check
+# wiki: 28 chunks, 149 checks pass   ← 엉뚱한 조각이 1등이면 실패
 ```
 
 ---
 
-## 다섯 장소
+## ② 다섯 장소 — 스크롤이 걸음이 된다
+
+스크롤은 재생이 아니라 **아잉의 걸음**입니다. 스크롤 위치가 곧 캐릭터의 x 좌표이고, 다섯
+장소를 순간이동 없이 걸어서 지나갑니다. 멈추면 아잉도 멈추고 `idle`로 돌아갑니다.
+
+```
+[새벽 숲 오두막] → [강의 돌다리] → [문지기 초소] → [언덕 전망대] → [해질녘 창고]
+      ↑ 스크롤 위치 = 카메라 x = 아잉의 x
+   하늘 0.2 · 배경 0.6 · 지면과 아잉 1.0 · 전경 소품 1.15
+```
+
+걷기는 스크롤 속도가 아니라 **시계**가 굴립니다(8fps 고정). 휙 넘겨도 리듬이 무너지지 않습니다.
+씬의 글은 캔버스가 아니라 서버가 그린 DOM이고, 화면에 붙잡아 두는 것은 JS가 아니라
+`position: sticky`입니다 — 엔진이 없어도, 모션을 줄여 달라고 해도 다섯 장은 그대로 읽힙니다.
 
 장소마다 **문제가 먼저** 보이고 그 다음에 그것을 다룬 사물이 보입니다. 도구를 진열하지 않습니다.
-사실 전달은 그림 위에 서는 카피가 합니다. 왼쪽에서 오른쪽으로 해가 기웁니다.
+왼쪽에서 오른쪽으로 해가 기웁니다.
 
 | # | 장소 | 무엇이 보이나 | 담긴 이력 |
 |:-:|---|---|---|
@@ -146,9 +187,27 @@ npm run check   # 44개 체크. 엉뚱한 조각이 1등이면 실패
 | 04 | **지능** | 언덕 위 망원경과 아래로 갈라지는 세 갈래 물길 | OpenSearch 재색인 · 멀티 LLM fallback |
 | 05 | **정합성** | 이중 자물쇠 창고와 상자를 하나씩 확인하는 우편함 | 쿠폰 DDD/Hexagonal · Outbox |
 
+<img src="docs/screens/world.webp" alt="규율 — 서로 다른 구멍의 문 다섯 개" />
+
+---
+
+## ③~⑧ 나머지 판들
+
 <img src="docs/screens/footprint.webp" alt="저장소 기여도 — 막대 길이가 실제 커밋 점유율" />
 
-> 막대 길이는 연출이 아니라 **실제 커밋 점유율**입니다.
+| 블록 | 무엇을 말하나 |
+|---|---|
+| **저장소 발자국** | 세 저장소의 커밋 점유율. **막대 길이는 연출이 아니라 실제 수치**입니다 |
+| **영상·오디오** | 촬영 → FFmpeg 컷 → S3 → MediaConvert → CloudFront → 스트리밍 6단계와, 2022년부터 이 포트폴리오까지의 미디어 작업 넷. 스크린샷은 촬영본이 아니라 그때 만든 앱을 그대로 띄운 것입니다 |
+| **공유 로그** | 팀 채널에 올린 글 9건. 반응 수를 적은 항목이 있는 이유는, 공유가 혼잣말이 아니라 팀이 실제로 집어 갔다는 근거가 그것뿐이기 때문입니다 |
+| **일하는 방식** | 원칙 셋. 각각 왜 그렇게 하는지가 붙습니다 |
+| **콜로폰** | 이 사이트에서 **저장소 밖에서 오는 유일한 두 목록** — GitHub 최근 프로젝트와 YouTube 최근 영상 |
+
+콜로폰의 두 피드는 6시간마다 다시 옵니다(`lib/feeds.ts`). Next 16의 `fetch`는 기본이 캐시
+안 함이라 `revalidate`를 안 붙이면 홈이 통째로 요청마다 렌더되는 동적 경로로 내려앉습니다 —
+정적 프리렌더라는 이 사이트의 전제가 조용히 깨집니다. 바깥이 죽어도 배포는 막지 않되,
+빈 목록으로 조용히 넘어가지 않고 빌드 로그에 남깁니다. 화면에서는 "영상이 없는 것"과
+구분되지 않기 때문입니다.
 
 ---
 
@@ -165,7 +224,7 @@ npm run check   # 44개 체크. 엉뚱한 조각이 1등이면 실패
 | 액션 | **16종** · 알파 컷아웃 WebP |
 | 모션 | **6종** · 알파 애니메이션 WebP (+ PNG 시퀀스, zip 동봉) |
 | 아틀라스 | 256px 균일 그리드 · WebP(웹) + PNG(엔진) + TextureAtlas JSON |
-| 3D | `aing.glb` **1.19MB** · `aing-lite.glb` **200KB** (meshopt) |
+| 3D | `aing.glb` **1.19MB** · `aing-lite.glb` **201KB** (meshopt) |
 
 <img src="docs/screens/kit3d.webp" alt="페이지에 임베드된 실시간 3D 뷰어" />
 
@@ -210,14 +269,17 @@ new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
 |---|---|
 | **HTML** | 다섯 장면의 제목·본문·태그, 저장소 수치, 원칙, 킷 그리드 전부 서버 렌더. 엔진은 이 마크업을 **읽기만** 하고(씬 경계와 스크롤 길이를 여기서 가져옵니다) 글은 건드리지 않습니다 |
 | **JSON-LD** | `ProfilePage` · `Person` · `ItemList`×2 · `FAQPage`. **화면에 실제로 보이는 글만** 올립니다 — 위키는 안 보이므로 FAQ로 올리지 않습니다 |
-| **`/iron.md`** | 이력서 전문 Clean Markdown (~16KB). 페이지와 **같은 상수**에서 생성되어 어긋날 사본이 없습니다 |
-| **`Accept: text/markdown`** | 홈 요청을 rewrite로 `/iron.md`에 연결(`proxy.js`). URL은 그대로라 에이전트가 인용하는 주소 = 사람이 여는 주소. `Vary: Accept` |
-| **`/llms.txt`** · **`/llms-full.txt`** | 색인과 전문. 역시 `lib/markdown.js`가 생성 |
+| **`/iron.md`** | 이력서 전문 Clean Markdown. 페이지와 **같은 상수**에서 생성되어 어긋날 사본이 없습니다 |
+| **`Accept: text/markdown`** | 홈 요청을 rewrite로 `/iron.md`에 연결(`proxy.ts`). URL은 그대로라 에이전트가 인용하는 주소 = 사람이 여는 주소. `Vary: Accept` |
+| **`/llms.txt`** · **`/llms-full.txt`** | 색인과 전문. 역시 `lib/markdown.ts`가 생성 |
 | **`robots.txt`** | GPTBot·ClaudeBot·PerplexityBot 등 16종을 **이름으로** 허용. 와일드카드만 두면 색인을 건너뛰는 봇이 있습니다 |
 
 ```bash
 curl -H "Accept: text/markdown" https://…/     # 3D 세계 대신 마크다운 전문
 ```
+
+`Accept` rewrite는 공유 캐시 한계 때문에 어디까지나 편의 기능이고, 에이전트에게 약속하는
+정본 주소는 `/iron.md`입니다.
 
 ---
 
@@ -225,32 +287,40 @@ curl -H "Accept: text/markdown" https://…/     # 3D 세계 대신 마크다운
 
 | 지표 | 값 |
 |---|---|
-| 초기 번들 | **185KB gzip** — three.js·픽셀 엔진·파티클 막·모델은 전부 필요할 때만 |
+| 초기 JS | **198KB gzip** — three.js·픽셀 엔진·파티클 막·LLM은 전부 필요할 때만 |
 | 3D 모델 | 54.44MB → **1.19MB** (simplify + meshopt + 텍스처 WebP) |
-| 픽셀 에셋 | 26장 **772KB** (배경 5 · 소품 10 · 아잉 8 · 공용 3), 영상 세계 1.19MB의 65% |
+| 픽셀 에셋 | 26장 **721KB** (배경 5 · 소품 10 · 아잉 8 · 공용 3) |
 | 파비콘 | 1.5MB → **52KB** (1024px 원본이 그대로 들어가 있었습니다) |
 
-> **번들이 74KB에서 185KB로 늘었습니다.** App Router 런타임의 값이고, 그 대가로 산 것이
-> 위의 AEO 표입니다. 에이전트에게는 초기 JS가 0이므로 이 거래는 그쪽에서 이득입니다.
-> Lighthouse 재측정은 Vercel 배포 후에 해야 의미가 있어 이전 수치는 내렸습니다.
+> 초기 JS는 프리렌더된 `index.html`이 참조하는 스크립트 8개의 gzip 합입니다. App Router
+> 런타임 값이고, 그 대가로 산 것이 위의 AEO 표입니다. 에이전트에게는 초기 JS가 0이므로
+> 이 거래는 그쪽에서 이득입니다.
 
 몇 가지 결정:
 
 - **three는 한쪽만 받습니다.** `three/webgpu`는 코어를 재export하므로 `three`와 같이 import하면
   같은 라이브러리를 두 벌(~190KB gzip) 내려받게 됩니다. 엔트리를 먼저 고르고 나서 import합니다.
-- **전면 섹션의 `backdrop-filter`는 걷어냈습니다.** 24,000px 페이지에서 그 면적을 블러하면
+- **전면 섹션의 `backdrop-filter`는 걷어냈습니다.** 17,000px 페이지에서 그 면적을 블러하면
   스크롤마다 실제 프레임을 잃습니다. 블러는 작은 글래스 카드에만 남겼습니다.
 - **하늘은 `background-attachment: fixed`가 아니라 실제 고정 엘리먼트**입니다. 전자는
   스크롤 틱마다 배경 전체를 다시 칠합니다.
+- **폰트는 표제용 Instrument Serif만 self-host**하고, 본문 한글 Pretendard는 동적 서브셋을
+  `media="print"`로 받아 첫 페인트를 막지 않습니다.
+
+### JS 없이도 남는 것
+
+픽셀 여정 다섯 장, 저장소 막대, 모든 섹션의 글이 그대로 읽히고 앵커 이동도 됩니다.
+안 되는 것은 오라클 대화와 3D 뷰어뿐입니다. 탭 첫 입력에 "본문으로 건너뛰기"가 나오고,
+아잉은 정지 포즈가 기본이라 모션을 줄여 달라고 한 방문자에게는 움직이지 않습니다.
 
 ---
 
 ## 스택
 
-- **Next.js 16.3 App Router + React 19** — 본문은 전부 서버 컴포넌트. 클라이언트로 넘어가는 것은
-  다섯 조각뿐입니다: `CoverParallax`(포인터) · `WorldMount`(엔진) · `Oracle`(WebGPU+워커) ·
-  `Live3D`(GLB) · `Guide`(스크롤 위치)
-- **픽셀 여정 엔진** — 의존성 0의 바닐라 JS 195줄(`lib/pixel-journey.js`). 스크롤을 카메라
+- **Next.js 16.3 App Router + React 19 + TypeScript 7** — 본문은 전부 서버 컴포넌트.
+  클라이언트로 넘어가는 것은 다섯 조각뿐입니다: `CoverParallax`(포인터) · `WorldMount`(엔진) ·
+  `Oracle`(WebGPU+워커) · `Live3D`(GLB) · `Guide`(스크롤 위치)
+- **픽셀 여정 엔진** — 의존성 0의 바닐라 TS(`lib/pixel-journey.ts`). 스크롤을 카메라
   좌표로 바꿔 레이어 넷을 서로 다른 속도로 밀 뿐입니다. 씬의 글과 스크롤 길이는 서버가 그린
   마크업이 쥐고 있고, 붙잡는 것은 CSS입니다
 - **씬 / 스프라이트** — Higgsfield `gpt_image_2` + `nano_banana_2`, 16-bit 픽셀 아트.
@@ -264,18 +334,21 @@ curl -H "Accept: text/markdown" https://…/     # 3D 세계 대신 마크다운
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000
-npm run build    # .next/
-npm start        # 프로덕션 서버
+npm run dev        # http://localhost:3000
+npm run build      # .next/
+npm start          # 프로덕션 서버
 
-npm run check    # 위키 검색 회귀 체크 44건 (프레임워크 없음)
+npm run check      # 위키 검색 회귀 체크 149건 (프레임워크 없음)
+npm run typecheck  # tsc --noEmit
+npm run lint       # oxlint
 ```
 
 배포는 Vercel입니다. `NEXT_PUBLIC_SITE_URL`을 두면 그 값이, 없으면 Vercel이 주는
 `VERCEL_PROJECT_PRODUCTION_URL`이 canonical·sitemap·JSON-LD의 기준이 됩니다 —
-프리뷰 배포가 스스로를 정본이라 주장하지 않도록 하드코딩하지 않았습니다(`lib/site.js`).
+프리뷰 배포가 스스로를 정본이라 주장하지 않도록 하드코딩하지 않았습니다(`lib/site.ts`).
 
-변경 이력과 결정 근거는 [CHANGELOG.md](CHANGELOG.md)에 있습니다.
+변경 이력과 결정 근거는 [CHANGELOG.md](CHANGELOG.md)에, 화면 구성도는
+[docs/screen-map.md](docs/screen-map.md)에 있습니다.
 
 ---
 
@@ -315,12 +388,15 @@ npx gltf-transform optimize in.glb out.glb --compress meshopt \
 
 ## 사실 정확성
 
-숫자는 전부 세 저장소(`ZIVO_FRONT` / `ZIVO_ADMIN` / `ZIVO_BACK`)의 git 이력 분석에서 나온
-실측치입니다. **지어낸 지표는 없습니다.** 검증되지 않은 항목은 아예 넣지 않았습니다.
+숫자는 전부 세 저장소(`ZIVO_FRONT` / `ZIVO_ADMIN` / `ZIVO_BACK`)의 git 이력 분석(2026-07-02
+기준)에서 나온 실측치입니다. **지어낸 지표는 없습니다.** 검증되지 않은 항목은 아예 넣지
+않았고, 하지 않은 일은 위키에 하지 않았다고 적어 두었습니다.
 
 ---
 
 <div align="center">
+
+<img src="docs/screens/expr-strip.webp" alt="Ai-ng 표정 시트" width="880" />
 
 **박상욱 (iron)** · ZIVO Medical Tourism Platform · 2025.10 – 2026.07
 
