@@ -15,31 +15,31 @@ export const STAGES = [
 export const SCRIPT: Record<string, { motion: string; pose: string; text: string }> = {
   cover: {
     motion: 'wave', pose: 'wave',
-    text: '안녕! 나는 이 여정을 함께할 가이드 아잉이야. 개발자 iron이 복잡한 문제들을 어떻게 풀어왔는지 하나씩 보여줄게. 같이 걸어볼래?',
+    text: '여기는 iron이 맡았던 문제를 따라가는 복도야. 화면에서 시작해 서버까지, 어디서 흐름이 끊겼고 어떻게 다시 이었는지 차례로 보여줄게.',
   },
   genesis: {
     motion: 'jump', pose: 'jump',
-    text: '오두막까지 길에 등불이 늘어서 있지? 14개 언어를 나타내. 앱 설치 없이 검색과 QR로 바로 결제되게 웹을 혼자 다 구축했대!',
+    text: '첫 번째는 앱 없이 시작하는 웹이야. 검색으로 들어온 해외 환자가 14개 언어로 QR 주문과 결제까지 끝낼 수 있게 혼자 만들었어.',
   },
   immunity: {
     motion: 'idle', pose: 'thumbsup',
-    text: '결제하다 뒤로가기를 눌러도 장바구니가 안 날아가게 만들었어. 실패해도 당황하지 않고 원래대로 돌아오게 설계한 거래.',
+    text: '결제 중에 뒤로 가거나 외부 창에서 돌아와도 장바구니가 사라지지 않아. 성공 화면뿐 아니라 실패한 다음 돌아올 자리까지 만든 거야.',
   },
   gatehouse: {
     motion: 'think', pose: 'point_side',
-    text: '팀원이 15명으로 늘어도 코드가 안 꼬이게, 권한 체크랑 공통 규칙을 한곳으로 깔끔하게 모았어.',
+    text: '15명이 각자 권한과 오류를 처리하면 기준도 15개가 돼. 모두가 같은 길을 지나도록 공통 계층 하나로 모았어.',
   },
   observatory: {
     motion: 'think', pose: 'think',
-    text: '외부 AI나 번역 서비스가 멈춰도 우리 서비스는 안 끊겨. 문제가 생긴 곳만 쏙 격리해두거든!',
+    text: '외부 AI 하나가 멈춰도 전체 작업은 계속 가야 해. 문제가 난 연동만 차단하고 다른 모델로 이어지게 만들었어.',
   },
   vault: {
     motion: 'idle', pose: 'carry',
-    text: '돈이 걸린 쿠폰은 두 번 나가거나 사라지면 큰일이잖아? 101번의 검증을 거쳐 1원도 안 새게 새로 지었대.',
+    text: '쿠폰은 재시도할 때 두 번 나가지 않아야 하고, 실패했다고 사라져서도 안 돼. 두 경우를 101개 테스트로 확인했어.',
   },
   footprint: {
     motion: 'idle', pose: 'point_down',
-    text: '웹, 어드민, 백엔드까지 세 영역 모두에서 핵심 역할을 맡았어. 저 막대 길이는 실제 커밋 기여도야.',
+    text: '화면 하나만 고쳐서는 끝나지 않는 문제가 많았어. 아래 막대는 웹, 어드민, 백엔드에서 실제로 남긴 커밋 점유율이야.',
   },
   media: {
     motion: 'idle', pose: 'coding',
@@ -47,18 +47,18 @@ export const SCRIPT: Record<string, { motion: string; pose: string; text: string
   },
   sharing: {
     motion: 'type', pose: 'present',
-    text: '좋은 도구나 팁을 찾으면 팀 채널에 먼저 써보고 공유했어. 동료들이 오늘 바로 쓸 수 있게 말이야.',
+    text: '새 도구는 먼저 직접 써 보고, 막힌 부분까지 적어서 공유했어. 링크가 아니라 오늘 바로 실행할 수 있는 형태로 말이야.',
   },
   principles: {
     motion: 'idle', pose: 'read',
-    text: 'iron이 개발할 때 가장 중요하게 생각하는 3가지 기준이야. 규칙은 사람이 외우는 게 아니라 도구가 지키게 해야 한대.',
+    text: '세 기준은 모두 같은 방향을 봐. 사람이 기억해서 막는 대신, 같은 문제가 다시 생길 자리를 코드와 도구로 없애는 거야.',
   },
   kit: {
     motion: 'celebrate', pose: 'celebrate',
-    text: '나를 페이지 장식으로만 두기 아까워서 표정, 동작, 3D 모델까지 다 만들어뒀대! 어디든 데려가서 써도 돼.',
+    text: '나도 이 페이지에서만 쓰고 끝나지 않아. 표정, 동작, 3D 모델과 사용 정보까지 묶여 있어서 다른 프로젝트로 데려갈 수 있어.',
   },
   colophon: {
     motion: 'wave', pose: 'bow',
-    text: '여기까지 같이 걸어와 줘서 고마워! 더 궁금한 점이 있다면 아래 메일이나 GitHub로 편하게 연락해 줘!',
+    text: '복도는 여기까지야. 더 확인하고 싶은 문제나 같이 풀고 싶은 일이 있다면 메일이나 GitHub로 이야기해 줘.',
   },
 };

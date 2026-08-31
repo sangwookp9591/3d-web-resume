@@ -14,7 +14,7 @@ export default function Media() {
   return (
     <section className="slab media" id="media" data-stage="media">
       <div className="slab__head">
-        <h2 className="slab__title">이전 프로젝트에서도, 병목을 찾아 푸는 방식은 같았습니다</h2>
+        <h2 className="slab__title">영상과 음성도 결국, 끊기는 지점을 찾는 일이었습니다</h2>
         <p className="media__lead">{MEDIA_LEAD}</p>
       </div>
 

@@ -5,7 +5,7 @@ export default function Principles() {
     <section className="creed" id="principles" data-stage="principles">
       {/* 이 섹션에는 원래 제목이 없고 영문 라벨 "Principles"만 있었습니다. 라벨을 걷어내면
           제목이 필요합니다 — h2 없이 h3 셋만 있는 섹션은 개요에서 갈 곳이 없어집니다. */}
-      <h2 className="creed__title">문제를 풀 때 타협하지 않는 세 가지 기준</h2>
+      <h2 className="creed__title">문제가 다시 생기지 않게 만드는 세 가지 기준</h2>
       <ol className="creed__list">
         {PRINCIPLES.map(([head, sub], i) => (
           <li className="creed__item" key={head}>

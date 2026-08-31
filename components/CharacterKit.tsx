@@ -50,10 +50,10 @@ export default function CharacterKit() {
   return (
     <section className="kit" id="aing" data-stage="kit">
       <div className="kit__head">
-        <h2 className="kit__title">여정을 안내한 캐릭터도 직접 만들어 오픈소스로 열어두었습니다</h2>
+        <h2 className="kit__title">페이지를 안내하던 아잉을, 다른 곳에서도 쓸 수 있게 만들었습니다</h2>
         <p className="kit__lead">
-          단순한 페이지 장식에 그치지 않도록 표정과 액션을 스프라이트로 뽑고, 모션은 알파 애니메이션으로,
-          형태는 3D 모델로 제작했습니다. three.js든 Unity든 바로 가져다 쓸 수 있도록 아틀라스와 매니페스트를 함께 패키징해 두었습니다.
+          화면 안에서 한 번 쓰고 끝내고 싶지 않았습니다. 표정과 동작은 스프라이트로, 움직임은 투명 배경 애니메이션으로,
+          형태는 3D 모델로 만들었습니다. three.js와 Unity에서 바로 꺼내 쓸 수 있도록 아틀라스와 매니페스트까지 함께 묶었습니다.
         </p>
       </div>
 

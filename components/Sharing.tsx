@@ -6,7 +6,7 @@ export default function Sharing() {
   return (
     <section className="slab share" id="sharing" data-stage="sharing">
       <div className="slab__head">
-        <h2 className="slab__title">새로 배운 건 혼자 두지 않고, 팀의 도구로 만들었습니다</h2>
+        <h2 className="slab__title">혼자 알면 팁이지만, 팀이 쓰면 도구가 됩니다</h2>
         <p className="share__lead">{SHARES_LEAD}</p>
       </div>
 
@@ -29,9 +29,8 @@ export default function Sharing() {
           그 폭이 이겨서 auto 마진이 가운데로 밀고, 위 목록보다 안쪽에서 시작합니다. */}
       <div className="share__foot">
         <p className="share__close">
-          동료가 OCR 연동 테스트로 막혀 있을 때 바로 실행할 수 있는 웹 테스트 환경과 가이드를 만들어 올렸습니다.
-          새로운 기술이나 도구가 나오면 나 혼자 쓰는 데 그치지 않고,
-          <strong> 팀 전체가 오늘 바로 써 볼 수 있는 수준까지 만들어 두는 편</strong>입니다.
+          동료가 OCR 연동 테스트에서 막혔을 때는 바로 실행할 수 있는 웹 테스트 환경과 가이드를 만들어 올렸습니다.
+          설명만 남기는 것보다 <strong>팀이 오늘 바로 실행해 볼 수 있는 형태</strong>가 더 오래 남는다고 생각합니다.
         </p>
       </div>
     </section>

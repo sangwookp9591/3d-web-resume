@@ -11,21 +11,33 @@ import Oracle from './oracle/Oracle';
 export default function Cover() {
   return (
     <CoverParallax>
+      <div className="corridor" aria-hidden="true">
+        <div className="corridor__camera">
+          <span className="corridor__ceiling" />
+          <span className="corridor__floor" />
+          <span className="corridor__wall corridor__wall--left" />
+          <span className="corridor__wall corridor__wall--right" />
+          <span className="corridor__end" />
+          <span className="corridor__frame corridor__frame--l1">WEB 0→1</span>
+          <span className="corridor__frame corridor__frame--l2">PAYMENT</span>
+          <span className="corridor__frame corridor__frame--r1">PLATFORM</span>
+          <span className="corridor__frame corridor__frame--r2">BACKEND</span>
+        </div>
+      </div>
+
       <div className="cover__stage">
         <div className="plate plate--name">
-          {/* 이름은 아래 h1이 말하므로 여기서는 뺍니다 — 눈이 두 번 읽을 이유가 없습니다. */}
-          <p className="plate__kicker">풀스택 개발자 · iron</p>
+          <p className="plate__kicker">박상욱 · 풀스택 개발자</p>
           {/* 줄바꿈은 두 번까지입니다. 세 줄이 되면 이름 판이 검색창 자리를 넘어
               화면 밖으로 밀려 올라갑니다(1440×900에서 73px이 잘렸습니다).
               두 번째 줄은 13~14자가 한계입니다 — 그보다 길면 거기서 한 번 더 접힙니다. */}
           <h1 className="plate__title">
-            안녕하세요,<br />
-            <span className="plate__title-mark">박상욱입니다.</span>
+            문제는 화면 하나에서<br />
+            <span className="plate__title-mark">끝나지 않았습니다.</span>
           </h1>
           <p className="plate__body">
-            해외 환자와 병원을 잇는 의료관광 플랫폼 ZIVO에서 아홉 달 동안 일했습니다. 손님이 보는
-            화면부터 그 뒤의 서버까지 만들었고, 장애가 난 뒤에 수습하기보다 막힐 자리를 먼저 찾아
-            지우는 편입니다. 저에 대해 좀 더 알아보시겠어요?
+            해외 환자가 검색으로 들어와 결제를 끝내고, 운영자가 그 과정을 관리할 때까지.
+            ZIVO의 웹과 어드민, 서버를 함께 맡으며 흐름이 끊기는 지점을 찾아 해결했습니다.
           </p>
         </div>
 
@@ -42,7 +54,7 @@ export default function Cover() {
         </dl>
 
         <a className="cue" href="#world">
-          <span className="cue__text">스크롤을 내리면 문제 해결 과정으로 이어집니다</span>
+          <span className="cue__text">복도를 따라 다섯 가지 문제 해결로 들어가 보세요</span>
           <span className="cue__rule" aria-hidden="true" />
           <span className="cue__chev" aria-hidden="true" />
         </a>
